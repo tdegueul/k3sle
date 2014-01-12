@@ -1,0 +1,45 @@
+grammar fr.inria.diverse.k3.sle.K3SLE with org.eclipse.xtext.xbase.Xbase
+
+generate k3sle "http://www.inria.fr/diverse/k3/sle/"
+
+import "http://www.eclipse.org/xtext/common/JavaVMTypes" as jvmTypes
+
+ModelRoot:
+	PackageDecl?
+	(imports = XImportSection)?
+	(elements += Declaration)*
+;
+
+PackageDecl:
+	'package' name = QualifiedName
+;
+
+Declaration:
+	MetamodelDecl | ModelTypeDecl | TransformationDecl
+;
+
+MetamodelDecl:
+	'metamodel' name = ValidID ('inherits' superTypes += [MetamodelDecl | QualifiedName] (',' superTypes += [MetamodelDecl | QualifiedName])*)? '{'
+		(ecores += EcoreDecl | aspects += AspectDecl)*
+	'}'
+;
+
+ModelTypeDecl:
+	'modeltype' name = ValidID ('extract' extracted = [MetamodelDecl | QualifiedName])? '{'
+	
+	'}'
+;
+
+TransformationDecl:
+	(main ?= '@Main')?
+	'transformation' name = ValidID '(' (parameters += FullJvmFormalParameter (',' parameters += FullJvmFormalParameter)*)? ')'
+	body = XBlockExpression
+;
+
+EcoreDecl:
+	'ecore' uri = STRING
+;
+
+AspectDecl:
+	'aspect' type = [jvmTypes::JvmGenericType]
+;
