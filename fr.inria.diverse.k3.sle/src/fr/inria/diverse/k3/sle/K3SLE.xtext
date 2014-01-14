@@ -41,5 +41,5 @@ EcoreDecl:
 ;
 
 AspectDecl:
-	'aspect' type = [jvmTypes::JvmGenericType]
+	'aspect' type = [jvmTypes::JvmGenericType | QualifiedName]
 ;
