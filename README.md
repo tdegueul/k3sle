@@ -10,4 +10,8 @@ TODO
 * Allow inheritance between metamodels 
 * Allow multiple inheritance of metamodels
 * Allow the import of multiple Ecore files in a metamodel declaration
+* Allow the definition of model types independently of any metamodel
+* Register to the EMF notification system (eg. 2-ways list adapters)
+* Support non-isomorphic subtyping via renaming clauses
+* Allow arbitrary return types for transformations
 
