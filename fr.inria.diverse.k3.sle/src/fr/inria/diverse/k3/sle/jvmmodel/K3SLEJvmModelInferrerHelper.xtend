@@ -1,6 +1,8 @@
 package fr.inria.diverse.k3.sle.jvmmodel
 
 import java.util.List
+import java.util.ArrayList
+
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
 import org.eclipse.emf.ecore.EDataType
@@ -8,8 +10,12 @@ import org.eclipse.emf.ecore.EOperation
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.emf.ecore.EParameter
 import org.eclipse.emf.ecore.EReference
+
 import org.eclipse.xtext.naming.QualifiedName
+
 import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
+import fr.inria.diverse.k3.sle.k3sle.EcoreDecl
+import fr.inria.diverse.k3.sle.k3sle.AspectDecl
 
 class K3SLEJvmModelInferrerHelper
 {
@@ -152,5 +158,23 @@ class K3SLEJvmModelInferrerHelper
 	
 	static def setterName(EReference attr) {
 		"set" + attr.name.toFirstUpper
+	}
+	
+	static def getAllEcores(MetamodelDecl mm) {
+		val ret = new ArrayList<EcoreDecl>
+		
+		ret.addAll(mm.ecores)
+		mm.superMetamodels.forEach[ret.addAll(it.ecores)]
+		
+		return ret
+	}
+	
+	static def getAllAspects(MetamodelDecl mm) {
+		val ret = new ArrayList<AspectDecl>
+		
+		ret.addAll(mm.aspects)
+		mm.superMetamodels.forEach[ret.addAll(it.aspects)]
+		
+		return ret
 	}
 }

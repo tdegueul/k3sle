@@ -44,7 +44,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	
 	def dispatch void infer(MetamodelDecl mm, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		// !!!
-		val uri = mm.ecores.head.uri
+		val uri = mm.allEcores.head.uri
 		val pkg = ModelUtils.loadPkg(uri)
 		val adapSwitch = new StringBuilder
 		
@@ -146,12 +146,13 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 								}
 							]
 							
-							mm.aspects
+							mm.allAspects
 								// !!!
 								.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
 								.forEach[asp |
 									asp.type.declaredOperations
 										.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+										.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
 										.forEach[op |
 											members += mm.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
 												val other = pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
@@ -221,7 +222,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			]
 			
 		acceptor.accept(mm.toClass(mm.fullyQualifiedName.normalize))
-			.initializeLater[				
+			.initializeLater[
 				val paramT = TypesFactory::eINSTANCE.createJvmTypeParameter => [
 					name = "T"
 					constraints += TypesFactory.eINSTANCE.createJvmUpperBound => [
@@ -256,7 +257,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		if (mt.extracted != null) {
 			// !!!
 			val mm = mt.extracted
-			val uri = mm.ecores.head.uri
+			val uri = mm.allEcores.head.uri
 			val pkg = ModelUtils.loadPkg(uri)
 			val mtI = mt.toInterface(mt.fullyQualifiedName.normalize.toString, [])
 			
@@ -304,12 +305,13 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 							}
 						]
 						
-						mm.aspects
+						mm.allAspects
 							// !!!
 							.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
 							.forEach[asp |
 								asp.type.declaredOperations
 									.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+									.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
 									.forEach[op |
 										members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
 											val other = pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
