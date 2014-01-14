@@ -218,7 +218,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						]
 					]
 				
-				adapSwitch.append('''case "«name»": return (T) new «mm.adapterNameFor(superType, mm.name)»(res) ;''')
+				adapSwitch.append('''case "«name»": return (T) new «mm.adapterNameFor(superType, mm.name)»(res) ;''' + "\n")
 			]
 			
 		acceptor.accept(mm.toClass(mm.fullyQualifiedName.normalize))
