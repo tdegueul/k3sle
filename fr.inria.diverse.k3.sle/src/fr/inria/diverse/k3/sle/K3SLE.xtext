@@ -19,7 +19,7 @@ Declaration:
 ;
 
 MetamodelDecl:
-	'metamodel' name = ValidID ('inherits' superTypes += [MetamodelDecl | QualifiedName] (',' superTypes += [MetamodelDecl | QualifiedName])*)? '{'
+	'metamodel' name = ValidID ('inherits' superMetamodels += [MetamodelDecl | QualifiedName] (',' superMetamodels += [MetamodelDecl | QualifiedName])*)? '{'
 		(ecores += EcoreDecl | aspects += AspectDecl)*
 	'}'
 ;
