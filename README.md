@@ -3,7 +3,7 @@ K3SLE
 
 TODO
 ----
-
+* Metamodel/ModelType attributes and operations
 * Improves the subtyping algorithm so that it takes aspects into account
 * Manage subpackages
 * Automatically find the root(s) of metamodels
