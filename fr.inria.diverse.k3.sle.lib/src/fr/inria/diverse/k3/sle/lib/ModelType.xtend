@@ -10,3 +10,10 @@ interface ModelType
 
 interface IFactory
 {}
+
+class ModelTypeException extends Exception
+{
+	new(String msg) {
+		super(msg)
+	}
+}
