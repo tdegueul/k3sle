@@ -4,11 +4,18 @@ import fr.inria.diverse.k3.sle.k3sle.ModelRoot
 import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
 import fr.inria.diverse.k3.sle.k3sle.ModelTypeDecl
 import fr.inria.diverse.k3.sle.k3sle.TransformationDecl
+
 import fr.inria.diverse.k3.sle.lib.ModelUtils
+import fr.inria.diverse.k3.sle.lib.ModelTypeException
+import fr.inria.diverse.k3.sle.lib.GenericAdapter
+import fr.inria.diverse.k3.sle.lib.AdapterFactory
+import fr.inria.diverse.k3.sle.lib.ModelType
+import fr.inria.diverse.k3.sle.lib.IFactory
 
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.emf.ecore.EClass
+import org.eclipse.emf.ecore.resource.Resource
 
 import org.eclipse.xtext.common.types.TypesFactory
 import org.eclipse.xtext.naming.IQualifiedNameProvider
@@ -22,6 +29,9 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
 import java.util.List
 import java.util.Map
 import java.util.HashMap
+import java.io.PrintWriter
+import java.io.FileWriter
+import java.io.BufferedWriter
 
 import com.google.inject.Inject
 
@@ -33,9 +43,13 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	@Inject extension IQualifiedNameProvider
 	
 	Map<String, Pair<ModelTypeDecl, EPackage>> registeredMTs
+	Map<String, EPackage> effectivePkgs
+	PrintWriter debug
+	static final val DEBUG_FILE = "/tmp/k3sle.debug"
 
 	def dispatch void infer(ModelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		registeredMTs = new HashMap<String, Pair<ModelTypeDecl, EPackage>>
+		effectivePkgs = new HashMap<String, EPackage>
 		
 		root.elements.filter(ModelTypeDecl).forEach[infer(acceptor, isPreIndexingPhase)]
 		root.elements.filter(MetamodelDecl).forEach[infer(acceptor, isPreIndexingPhase)]
@@ -44,9 +58,12 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	
 	def dispatch void infer(MetamodelDecl mm, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		// !!!
-		val uri = mm.allEcores.head.uri
-		val pkg = ModelUtils.loadPkg(uri)
+		log("Infering MM " + mm.name)
+		val uri = mm.uri
+		val pkg = mm.pkg		
 		val adapSwitch = new StringBuilder
+		
+		pkg.weaveAspects(mm)
 		
 		registeredMTs
 			.filter[name, definition | pkg.subtypeOf(definition.value)]
@@ -57,10 +74,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				acceptor.accept(mm.toClass(mm.adapterNameFor(superType, mm.name)))
 					.initializeLater[
 						superTypes += newTypeRef(superType.fullyQualifiedName.normalize.toString)
-						superTypes += newTypeRef("fr.inria.diverse.k3.sle.lib.GenericAdapter", newTypeRef("org.eclipse.emf.ecore.resource.Resource"))
+						superTypes += newTypeRef(GenericAdapter, newTypeRef(Resource))
 						
 						members += mm.toConstructor[
-							parameters += mm.toParameter("adaptee", newTypeRef("org.eclipse.emf.ecore.resource.Resource"))
+							parameters += mm.toParameter("adaptee", newTypeRef(Resource))
 							body = '''super(adaptee) ;'''
 						]
 						
@@ -88,7 +105,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					
 					acceptor.accept(mm.toClass(mm.adapterNameFor(superType, inCls.name)))
 						.initializeLater[
-							superTypes += newTypeRef("fr.inria.diverse.k3.sle.lib.GenericAdapter", newTypeRef(inCls.fullyQualifiedName.toString))
+							superTypes += newTypeRef(GenericAdapter, newTypeRef(inCls.fullyQualifiedName.toString))
 							superTypes += newTypeRef(superType.interfaceNameFor(inCls.name))
 							
 							members += mm.toConstructor[
@@ -148,7 +165,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 							
 							mm.allAspects
 								// !!!
-								.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
+								.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head?.parameterType?.simpleName == cls.name]]
 								.forEach[asp |
 									asp.type.declaredOperations
 										.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
@@ -189,9 +206,9 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					
 					acceptor.accept(mm.toClass(mm.factoryNameFor(superType, inCls.name)))
 						.initializeLater[
-							superTypes += newTypeRef("fr.inria.diverse.k3.sle.lib.AdapterFactory", newTypeRef(inCls.fullyQualifiedName.toString))
+							superTypes += newTypeRef(AdapterFactory, newTypeRef(inCls.fullyQualifiedName.toString))
 							
-							members += mm.toMethod("newObject", newTypeRef("fr.inria.diverse.k3.sle.lib.GenericAdapter", newTypeRef(inCls.fullyQualifiedName.toString)))[
+							members += mm.toMethod("newObject", newTypeRef(GenericAdapter, newTypeRef(inCls.fullyQualifiedName.toString)))[
 								parameters += mm.toParameter("adaptee", newTypeRef(inCls.fullyQualifiedName.toString))
 								body = '''
 									return new «mm.adapterNameFor(superType, inCls.name)»(adaptee) ;
@@ -226,7 +243,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				val paramT = TypesFactory::eINSTANCE.createJvmTypeParameter => [
 					name = "T"
 					constraints += TypesFactory.eINSTANCE.createJvmUpperBound => [
-						typeReference = mm.newTypeRef("fr.inria.diverse.k3.sle.lib.ModelType")
+						typeReference = mm.newTypeRef(ModelType)
 					]
 				]
 				
@@ -237,6 +254,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					parameters += mm.toParameter("uri", newTypeRef(String))
 					parameters += mm.toParameter("type", mm.newTypeRef(Class, paramT.newTypeRef))
 					
+					exceptions += mm.newTypeRef(ModelTypeException)
+					
 					documentation = '''FIXME'''
 					body = '''
 						org.eclipse.emf.ecore.resource.ResourceSet resSet = new org.eclipse.emf.ecore.resource.impl.ResourceSetImpl() ;
@@ -246,14 +265,17 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 							«adapSwitch»
 						}
 						
-						//throw new fr.inria.diverse.k3.sle.lib.ModelTypeException("Cannot load " + uri + " using MT " + type) ;
-						return null ;
+						throw new fr.inria.diverse.k3.sle.lib.ModelTypeException("Cannot load " + uri + " using MT(" + type + ") : incompatible types") ;
 					'''
 				]
 			]
+		
+		registerEffectivePkg(mm, pkg)
 	}
 	
 	def dispatch void infer(ModelTypeDecl mt, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		log("Infering MT " + mt.name)
+		
 		if (mt.extracted != null) {
 			// !!!
 			val mm = mt.extracted
@@ -261,11 +283,13 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			val pkg = ModelUtils.loadPkg(uri)
 			val mtI = mt.toInterface(mt.fullyQualifiedName.normalize.toString, [])
 			
+			pkg.weaveAspects(mm)
+			
 			acceptor.accept(mtI)
 				.initializeLater[
-					superTypes += newTypeRef("fr.inria.diverse.k3.sle.lib.ModelType")
+					superTypes += newTypeRef(ModelType)
 					
-					members += mt.toMethod("getContents", newTypeRef(typeof(List), newTypeRef("java.lang.Object")))[
+					members += mt.toMethod("getContents", newTypeRef(List, newTypeRef(Object)))[
 						abstract = true
 					]
 					
@@ -276,7 +300,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			
 			pkg.EClassifiers.filter(EClass).forEach[cls |
 				acceptor.accept(cls.toInterface(mt.interfaceNameFor(cls.name), []))
-					.initializeLater[
+					.initializeLater[					
 						cls.ESuperTypes.forEach[sup |
 							superTypes += newTypeRef(mt.interfaceNameFor(sup.name))
 						]
@@ -307,7 +331,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						
 						mm.allAspects
 							// !!!
-							.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
+							.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head?.parameterType?.simpleName == cls.name]]
 							.forEach[asp |
 								asp.type.declaredOperations
 									.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
@@ -343,6 +367,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	}
 	
 	def dispatch void infer(TransformationDecl transfo, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		log("Infering T " + transfo.name)
 		acceptor.accept(transfo.toClass(transfo.fullyQualifiedName))
 			.initializeLater[
 				// Not always void!
@@ -359,10 +384,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						parameters += transfo.toParameter("args", transfo.newTypeRef(typeof(String)).addArrayTypeDimension)
 						
 						body = '''
-							«FOR mt : registeredMTs.values»
+							«FOR pkg : effectivePkgs.values»
 							org.eclipse.emf.ecore.EPackage.Registry.INSTANCE.put(
-								«mt.value.fullyQualifiedName.toString».«mt.value.fullyQualifiedName.toString.toFirstUpper»Package.eNS_URI,
-								«mt.value.fullyQualifiedName.toString».«mt.value.fullyQualifiedName.toString.toFirstUpper»Package.eINSTANCE
+								«pkg.fullyQualifiedName.toString».«pkg.fullyQualifiedName.toString.toFirstUpper»Package.eNS_URI,
+								«pkg.fullyQualifiedName.toString».«pkg.fullyQualifiedName.toString.toFirstUpper»Package.eINSTANCE
 							) ;
 							«ENDFOR»
 							org.eclipse.emf.ecore.resource.Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put(
@@ -373,7 +398,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 							«transfo.fullyQualifiedName».call() ;
 						'''
 						static = true
-					] 
+					]
 				}
 			]
 	}
@@ -383,10 +408,15 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			registeredMTs.put(mt.fullyQualifiedName.toString, mt -> pkg)
 	}
 	
+	def registerEffectivePkg(MetamodelDecl mm, EPackage pkg) {
+		if (!effectivePkgs.containsKey(mm.fullyQualifiedName.toString))
+			effectivePkgs.put(mm.fullyQualifiedName.toString, pkg)
+	}
+	
 	def extractFactoryInterface(EPackage pkg, QualifiedName targetPkg, IJvmDeclaredTypeAcceptor acceptor) {
 		acceptor.accept(pkg.toInterface(targetPkg.append(pkg.factoryName).normalize.toString, []))
 			.initializeLater[
-				superTypes += newTypeRef("fr.inria.diverse.k3.sle.lib.IFactory")
+				superTypes += newTypeRef(IFactory)
 				
 				pkg.EClassifiers.filter(EClass).filter[!^abstract && !^interface].forEach[cls |
 					members += cls.toMethod("create" + cls.name, newTypeRef(targetPkg.append(cls.name).normalize.toString), [
@@ -428,5 +458,11 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	
 	def interfaceNameFor(ModelTypeDecl mt, String cls) {
 		mt.fullyQualifiedName.append(cls).normalize.toString
+	}
+	
+	def log(String s) {
+		debug = new PrintWriter(new BufferedWriter(new FileWriter(DEBUG_FILE, true)))
+		debug.write("[" + new java.util.Date() + "] " + s + "\n")
+		debug.close
 	}
 }
