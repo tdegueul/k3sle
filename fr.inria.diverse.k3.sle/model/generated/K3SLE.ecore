@@ -14,10 +14,9 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="MetamodelDecl" eSuperTypes="#//Declaration">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="superMetamodels" unique="false"
-        upperBound="-1" eType="#//MetamodelDecl"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="ecores" upperBound="-1"
-        eType="#//EcoreDecl" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="superMetamodel" eType="#//MetamodelDecl"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ecore" eType="#//EcoreDecl"
+        containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="aspects" upperBound="-1"
         eType="#//AspectDecl" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="features" upperBound="-1"

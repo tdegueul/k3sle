@@ -32,6 +32,10 @@ import org.eclipse.xtext.common.types.JvmOperation
 import java.util.Collections
 import java.util.ArrayList
 
+import java.nio.file.Files
+import java.nio.file.Paths
+import org.eclipse.emf.common.util.URI
+
 class K3SLEJvmModelInferrerHelper
 {	
 	static def normalize(QualifiedName name) {
@@ -72,8 +76,11 @@ class K3SLEJvmModelInferrerHelper
 	static def getAllEcores(MetamodelDecl mm) {
 		val ret = new ArrayList<EcoreDecl>
 		
-		ret.addAll(mm.ecores)
-		mm.superMetamodels.forEach[ret.addAll(it.ecores)]
+		if (mm.ecore != null)
+			ret.add(mm.ecore)
+		
+		if (mm.superMetamodel != null)
+			ret.add(mm.superMetamodel.ecore)
 		
 		return ret
 	}
@@ -82,23 +89,25 @@ class K3SLEJvmModelInferrerHelper
 		val ret = new ArrayList<AspectDecl>
 		
 		ret.addAll(mm.aspects)
-		mm.superMetamodels.forEach[ret.addAll(it.aspects)]
+		
+		if (mm.superMetamodel != null)
+			ret.addAll(mm.superMetamodel.aspects)
 		
 		return ret
 	}
 	
 	static def getUri(MetamodelDecl mm) {
-		if (mm.ecores.empty && !mm.superMetamodels.empty)
+		if (mm.ecore == null && mm.superMetamodel != null)
 			'''platform:/resource/«mm.name»Generated/model/«mm.name».ecore'''
 		else
-			mm.ecores.head.uri
+			mm.ecore.uri
 	}
 	
 	static def getPkg(MetamodelDecl mm) {
-		if (mm.ecores.empty && !mm.superMetamodels.empty)
+		if (mm.ecore == null && mm.superMetamodel != null)
 		{
-			val superMM = mm.superMetamodels.head
-			val superPkg = ModelUtils.loadPkg(superMM.ecores.head.uri)
+			val superMM = mm.superMetamodel
+			val superPkg = ModelUtils.loadPkg(superMM.ecore.uri)
 			val pkg = superPkg.copy(mm.name)
 			val uri = mm.uri
 			val genModelUri = '''platform:/resource/«mm.name»Generated/model/«mm.name».genmodel'''
@@ -108,7 +117,7 @@ class K3SLEJvmModelInferrerHelper
 			
 			return pkg
 		} else {
-			val uri = mm.ecores.head.uri
+			val uri = mm.ecore.uri
 			val pkg = ModelUtils.loadPkg(uri)
 			
 			return pkg
@@ -206,5 +215,14 @@ class K3SLEJvmModelInferrerHelper
 	
 	static def getClassifierFor(EPackage pkg, String name) {
 		return pkg.EClassifiers.findFirst[it.name == name]
+	}
+	
+	static def isComplete(MetamodelDecl mm) {
+		   (mm.ecore != null
+		&& mm.ecore.uri != null)
+		|| (mm.ecore == null
+		&&  mm.superMetamodel.ecore != null
+		&&  mm.superMetamodel.ecore.uri != null)
+		//&& isValidEcorePath(...)
 	}
 }

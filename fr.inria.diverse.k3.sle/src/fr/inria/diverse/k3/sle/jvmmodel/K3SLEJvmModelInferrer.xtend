@@ -62,6 +62,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	}
 	
 	def dispatch void infer(MetamodelDecl mm, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		// Basic checks before trying to infer an incomplete declaration
+		if (!mm.isComplete)
+			return ;
+		
 		// !!!
 		log("Infering MM " + mm.name)
 		val pkg = mm.pkg		
@@ -207,9 +211,9 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 										]
 								]
 							
-							if (mm.superMetamodels.size > 0) {
+							if (mm.superMetamodel != null) {
 								// !!!
-								val superMM = mm.superMetamodels.head
+								val superMM = mm.superMetamodel
 								
 								superMM.aspects
 									// !!!
@@ -318,8 +322,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				]
 			]
 		
-		if (mm.superMetamodels.size > 0) {
-			val superMM = mm.superMetamodels.head
+		if (mm.superMetamodel != null) {
+			val superMM = mm.superMetamodel
 			val superPkg = superMM.pkg
 			
 			superPkg.EClassifiers.filter(EClass).forEach[cls |
@@ -405,7 +409,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	def dispatch void infer(ModelTypeDecl mt, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		log("Infering MT " + mt.name)
 		
-		if (mt.extracted != null) {
+		if (mt.extracted != null && mt.extracted.isComplete) {
 			// !!!
 			val mm = mt.extracted
 			val uri = mm.allEcores.head.uri
