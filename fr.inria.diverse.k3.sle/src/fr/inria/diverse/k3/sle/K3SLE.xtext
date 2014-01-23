@@ -21,12 +21,21 @@ Declaration:
 MetamodelDecl:
 	'metamodel' name = ValidID ('inherits' superMetamodels += [MetamodelDecl | QualifiedName] (',' superMetamodels += [MetamodelDecl | QualifiedName])*)? '{'
 		(ecores += EcoreDecl | aspects += AspectDecl)*
+		(
+			'features' '{'
+				(features += FeatureDef)*
+			'}'
+		)?
 	'}'
 ;
 
 ModelTypeDecl:
 	'modeltype' name = ValidID ('extract' extracted = [MetamodelDecl | QualifiedName])? '{'
-	
+		(
+			'features' '{'
+				(features += FeatureDecl)*
+			'}'
+		)?
 	'}'
 ;
 
@@ -42,4 +51,29 @@ EcoreDecl:
 
 AspectDecl:
 	'aspect' type = [jvmTypes::JvmGenericType | QualifiedName]
+;
+
+FeatureDef:
+	AttributeDef | OperationDef
+;
+
+FeatureDecl:
+	AttributeDef | OperationDecl
+;
+
+AttributeDef:
+	'attribute' name = ValidID ':' type = JvmTypeReference
+;
+
+OperationDef:
+	OperationSignature
+	body = XBlockExpression
+;
+
+OperationDecl:
+	OperationSignature
+;
+
+OperationSignature:
+	'operation' name = ValidID '(' (parameters += FullJvmFormalParameter (',' parameters += FullJvmFormalParameter)*)? ')'
 ;

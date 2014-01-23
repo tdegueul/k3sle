@@ -14,15 +14,19 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="MetamodelDecl" eSuperTypes="#//Declaration">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="superTypes" unique="false"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="superMetamodels" unique="false"
         upperBound="-1" eType="#//MetamodelDecl"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="ecores" upperBound="-1"
         eType="#//EcoreDecl" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="aspects" upperBound="-1"
         eType="#//AspectDecl" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="features" upperBound="-1"
+        eType="#//FeatureDef" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ModelTypeDecl" eSuperTypes="#//Declaration">
     <eStructuralFeatures xsi:type="ecore:EReference" name="extracted" eType="#//MetamodelDecl"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="features" upperBound="-1"
+        eType="#//FeatureDecl" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="TransformationDecl" eSuperTypes="#//Declaration">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="main" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
@@ -37,5 +41,22 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="AspectDecl">
     <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="ecore:EClass ../../../org.eclipse.xtext.common.types/model/JavaVMTypes.ecore#//JvmGenericType"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="FeatureDef"/>
+  <eClassifiers xsi:type="ecore:EClass" name="FeatureDecl"/>
+  <eClassifiers xsi:type="ecore:EClass" name="AttributeDef" eSuperTypes="#//FeatureDef #//FeatureDecl">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="ecore:EClass ../../../org.eclipse.xtext.common.types/model/JavaVMTypes.ecore#//JvmTypeReference"
+        containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="OperationDef" eSuperTypes="#//FeatureDef"/>
+  <eClassifiers xsi:type="ecore:EClass" name="OperationDecl" eSuperTypes="#//FeatureDecl"/>
+  <eClassifiers xsi:type="ecore:EClass" name="OperationSignature" eSuperTypes="#//OperationDef #//OperationDecl">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="body" eType="ecore:EClass ../../../org.eclipse.xtext.xbase/model/Xbase.ecore#//XExpression"
+        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+        eType="ecore:EClass ../../../org.eclipse.xtext.common.types/model/JavaVMTypes.ecore#//JvmFormalParameter"
+        containment="true"/>
   </eClassifiers>
 </ecore:EPackage>

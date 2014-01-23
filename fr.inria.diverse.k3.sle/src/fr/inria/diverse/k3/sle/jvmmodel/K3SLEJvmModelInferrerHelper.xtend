@@ -1,162 +1,45 @@
 package fr.inria.diverse.k3.sle.jvmmodel
 
-import java.util.List
-import java.util.ArrayList
+import org.eclipse.emf.common.util.BasicMonitor
 
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
-import org.eclipse.emf.ecore.EDataType
-import org.eclipse.emf.ecore.EOperation
 import org.eclipse.emf.ecore.EPackage
-import org.eclipse.emf.ecore.EParameter
 import org.eclipse.emf.ecore.EReference
+import org.eclipse.emf.ecore.EcoreFactory
+import org.eclipse.emf.ecore.EcorePackage
+import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
+import org.eclipse.emf.ecore.util.EcoreUtil
 
-import org.eclipse.xtext.naming.QualifiedName
+import org.eclipse.emf.codegen.ecore.genmodel.GenModelFactory
+import org.eclipse.emf.codegen.ecore.genmodel.GenJDKLevel
+import org.eclipse.emf.codegen.ecore.genmodel.generator.GenBaseGeneratorAdapter
+import org.eclipse.emf.codegen.ecore.genmodel.util.GenModelUtil
+import org.eclipse.emf.codegen.ecore.genmodel.GenModel
+import org.eclipse.emf.codegen.ecore.genmodel.GenPackage
 
 import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
 import fr.inria.diverse.k3.sle.k3sle.EcoreDecl
 import fr.inria.diverse.k3.sle.k3sle.AspectDecl
-import org.eclipse.emf.ecore.EcoreFactory
-import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
-import org.eclipse.emf.ecore.util.EcoreUtil
-import java.util.ArrayList
-import org.eclipse.emf.codegen.ecore.genmodel.GenModelFactory
-import org.eclipse.emf.codegen.ecore.genmodel.GenJDKLevel
-import java.nio.file.Path
-import java.util.Collections
-import org.eclipse.emf.codegen.ecore.genmodel.GenPackage
-import org.eclipse.emf.common.util.URI
-import org.eclipse.emf.ecore.xmi.impl.XMIResourceImpl
-import org.eclipse.emf.ecore.xmi.XMLResource
+
 import fr.inria.diverse.k3.sle.lib.ModelUtils
-import org.eclipse.emf.codegen.ecore.generator.GeneratorAdapterFactory
-import org.eclipse.emf.codegen.ecore.genmodel.generator.GenModelGeneratorAdapterFactory
-import org.eclipse.emf.codegen.ecore.generator.Generator
-import org.eclipse.emf.codegen.ecore.genmodel.generator.GenBaseGeneratorAdapter
-import org.eclipse.emf.common.util.BasicMonitor
-import org.eclipse.emf.codegen.ecore.genmodel.util.GenModelUtil
-import org.eclipse.emf.codegen.ecore.genmodel.GenModel
+import fr.inria.diverse.k3.sle.lib.MatchingHelper
+
+import org.eclipse.xtext.naming.QualifiedName
+
 import org.eclipse.xtext.common.types.JvmOperation
-import org.eclipse.emf.ecore.EcorePackage
+
+import java.util.Collections
+import java.util.ArrayList
 
 class K3SLEJvmModelInferrerHelper
-{
+{	
 	static def normalize(QualifiedName name) {
 		name.skipLast(1).toLowerCase.append(name.lastSegment.toFirstUpper)
 	}
 	
 	static def boolean subtypeOf(EPackage pkgA, EPackage pkgB) {
-		pkgB.EClassifiers.filter(EClass).forall[clsB |
-			pkgA.EClassifiers.filter(EClass).exists[clsA | clsA.correspondsTo(clsB)]
-		]
-	}
-	
-	static def boolean correspondsTo(EClass clsA, EClass clsB) {
-		    clsA.name == clsB.name
-		&&  clsB.EOperations.forall[opB |
-				clsA.EOperations.exists[opA | opA.correspondsTo(opB)]
-			]
-		&&  clsB.EAttributes.forall[attrB |
-				clsA.EAttributes.exists[attrA | attrA.correspondsTo(attrB)]
-			]
-		&&  clsB.EReferences.forall[refB |
-				clsA.EReferences.exists[refA | refA.correspondsTo(refB)]
-			]
-	}
-	
-	static def boolean correspondsTo(EOperation opA, EOperation opB) {
-		    opA.name == opB.name
-		&&  if (opA.EType instanceof EDataType || opB.EType instanceof EDataType)
-				opA.EType == opB.EType
-			else
-				(
-					   opA.EContainingClass.EPackage.EClassifiers.contains(opA.EType)
-					&& opB.EContainingClass.EPackage.EClassifiers.contains(opB.EType)
-					&& (opA.EType as EClass).correspondsTo(opB.EType as EClass)
-				) || (
-					//(opA.EType as EClass).EAllSuperTypes.contains(opB.EType)
-					true
-				)
-		&&  parametersListMatch(opA.EParameters, opB.EParameters)
-		&&  opA.EExceptions.forall[excA |
-				opB.EExceptions.exists[excB |
-					if (excA instanceof EDataType || excB instanceof EDataType)
-						excA == excB
-					else
-						(
-							   opA.EContainingClass.EPackage.EClassifiers.contains(excA)
-							&& opB.EContainingClass.EPackage.EClassifiers.contains(excB)
-							&& (excA as EClass).correspondsTo(excB as EClass)
-						) || (
-							(excA as EClass).EAllSuperTypes.contains(excB)
-						)
-				]
-			]
-	}
-	
-	static def boolean parametersListMatch(List<EParameter> paramsA, List<EParameter> paramsB) {
-		var rank = 0
-		
-		for (paramB : paramsB) {
-			if (rank >= paramsA.size)
-				return false
-			
-			val paramA = paramsA.get(rank)
-			
-			if (paramA.EType instanceof EDataType || paramB.EType instanceof EDataType)
-				if (paramA.EType != paramB.EType)
-					return false
-			else if (paramA.EOperation.EContainingClass.EPackage.EClassifiers.contains(paramA.EType)
-					&& paramB.EOperation.EContainingClass.EPackage.EClassifiers.contains(paramB.EType))
-				if (!(paramA.EType as EClass).correspondsTo(paramB.EType as EClass))
-					return false
-			else
-				if (!(paramA.EType as EClass).EAllSuperTypes.contains(paramB.EType))
-					return false
-			
-			if (
-				   paramA.lowerBound != paramB.lowerBound
-				|| paramA.upperBound != paramB.upperBound
-				|| paramA.unique != paramB.unique
-				|| paramA.ordered && !paramB.ordered
-			)
-				return false
-			
-			rank = rank + 1	
-		}
-		
-		true
-	}
-	
-	static def boolean correspondsTo(EAttribute attrA, EAttribute attrB) {
-		    attrA.name == attrB.name
-		&&  (attrA.changeable || !attrB.changeable)
-		&&  (attrA.unique == attrB.unique)
-		&&  (!attrA.ordered || attrB.ordered)
-		&&  if (attrA.EType instanceof EDataType || attrB.EType instanceof EDataType)
-				attrA.EType == attrB.EType
-			else
-				(
-					   attrA.EContainingClass.EPackage.EClassifiers.contains(attrA.EType)
-					&& attrB.EContainingClass.EPackage.EClassifiers.contains(attrB.EType)
-					&& (attrA.EType as EClass).correspondsTo(attrB.EType as EClass)
-				) || (
-					   (attrA.EType as EClass).EAllSuperTypes.contains(attrB.EType)
-					&& !attrA.changeable
-				)
-		&&  (attrA.lowerBound == attrB.lowerBound)
-		&&  (attrA.upperBound == attrB.upperBound)
-	}
-	
-	static def boolean correspondsTo(EReference refA, EReference refB) {
-		    refA.name == refB.name
-		&&  (refA.changeable || !refB.changeable)
-		&&  (refA.containment == refB.containment)
-		&&  (refA.unique == refB.unique)
-		&&  (!refA.ordered || refB.ordered)
-		&&  (refA.lowerBound == refB.lowerBound)
-		&&  (refA.upperBound == refB.upperBound)
-		&&  (!(refA.EOpposite != null) || (refB.EOpposite != null && refA.EOpposite.name == refB.EOpposite.name))
+		new MatchingHelper(pkgA, pkgB).match
 	}
 	
 	static def dispatch getFactoryName(EPackage pkg) {
@@ -278,15 +161,16 @@ class K3SLEJvmModelInferrerHelper
 		genModel.validateModel = true
 		
 		val generator = GenModelUtil.createGenerator(genModel)
-		val d = generator.generate(
+		generator.generate(
 			genModel,
 			GenBaseGeneratorAdapter.MODEL_PROJECT_TYPE,
 			new BasicMonitor.Printing(System.out)
 		)
 	}
 	
+	// TODO: fixme
 	static def weaveAspects(EPackage pkg, MetamodelDecl mm) {
-		mm.aspects.forEach[asp |
+		mm.allAspects.forEach[asp |
 			val aspectized = pkg.EClassifiers.filter(EClass).findFirst[cls |
 				asp.type.eAllContents.filter(JvmOperation)
 					.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]

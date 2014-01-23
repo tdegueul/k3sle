@@ -4,7 +4,7 @@
     editorDirectory="/fr.inria.diverse.k3.sle.editor/src" modelPluginID="fr.inria.diverse.k3.sle"
     forceOverwrite="true" modelName="K3SLE" updateClasspath="false" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
     complianceLevel="5.0" copyrightFields="false" editPluginID="fr.inria.diverse.k3.sle.edit"
-    editorPluginID="fr.inria.diverse.k3.sle.editor" runtimeVersion="2.9" usedGenPackages="../../../org.eclipse.xtext.common.types/model/JavaVMTypes.genmodel#//types ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xbase ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xtype">
+    editorPluginID="fr.inria.diverse.k3.sle.editor" runtimeVersion="2.10" usedGenPackages="../../../org.eclipse.xtext.common.types/model/JavaVMTypes.genmodel#//types ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xbase ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xtype">
   <genPackages prefix="K3sle" basePackage="fr.inria.diverse.k3.sle" disposableProviderFactory="true"
       fileExtensions="k3sle" ecorePackage="K3SLE.ecore#/">
     <genClasses ecoreClass="K3SLE.ecore#//ModelRoot">
@@ -18,12 +18,14 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute K3SLE.ecore#//Declaration/name"/>
     </genClasses>
     <genClasses ecoreClass="K3SLE.ecore#//MetamodelDecl">
-      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference K3SLE.ecore#//MetamodelDecl/superTypes"/>
+      <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference K3SLE.ecore#//MetamodelDecl/superMetamodels"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//MetamodelDecl/ecores"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//MetamodelDecl/aspects"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//MetamodelDecl/features"/>
     </genClasses>
     <genClasses ecoreClass="K3SLE.ecore#//ModelTypeDecl">
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference K3SLE.ecore#//ModelTypeDecl/extracted"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//ModelTypeDecl/features"/>
     </genClasses>
     <genClasses ecoreClass="K3SLE.ecore#//TransformationDecl">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute K3SLE.ecore#//TransformationDecl/main"/>
@@ -35,6 +37,19 @@
     </genClasses>
     <genClasses ecoreClass="K3SLE.ecore#//AspectDecl">
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference K3SLE.ecore#//AspectDecl/type"/>
+    </genClasses>
+    <genClasses ecoreClass="K3SLE.ecore#//FeatureDef"/>
+    <genClasses ecoreClass="K3SLE.ecore#//FeatureDecl"/>
+    <genClasses ecoreClass="K3SLE.ecore#//AttributeDef">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute K3SLE.ecore#//AttributeDef/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//AttributeDef/type"/>
+    </genClasses>
+    <genClasses ecoreClass="K3SLE.ecore#//OperationDef"/>
+    <genClasses ecoreClass="K3SLE.ecore#//OperationDecl"/>
+    <genClasses ecoreClass="K3SLE.ecore#//OperationSignature">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//OperationSignature/body"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute K3SLE.ecore#//OperationSignature/name"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference K3SLE.ecore#//OperationSignature/parameters"/>
     </genClasses>
   </genPackages>
 </genmodel:GenModel>

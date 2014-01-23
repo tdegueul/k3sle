@@ -14,4 +14,7 @@ TODO
 * Register to the EMF notification system (eg. 2-ways list adapters)
 * Support non-isomorphic subtyping via renaming clauses
 * Allow arbitrary return types for transformations
+* Create models from scratch using the generated factories
+* Manage (potentially cyclic) dependencies in the matching algorithm
+* Support metamodels making use of external references
 
