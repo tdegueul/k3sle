@@ -38,68 +38,68 @@ class K3SLEJvmModelInferrerHelper
 	static def normalize(QualifiedName name) {
 		name.skipLast(1).toLowerCase.append(name.lastSegment.toFirstUpper)
 	}
-	
+
 	static def boolean subtypeOf(EPackage pkgA, EPackage pkgB) {
 		new MatchingHelper(pkgA, pkgB).match
 	}
-	
+
 	static def dispatch getFactoryName(EPackage pkg) {
 		"I" + pkg.name.toFirstUpper + "Factory"
 	}
-	
+
 	static def dispatch getFactoryName(MetamodelDecl mm) {
 		mm.name + "Factory"
 	}
-	
+
 	static def getterName(EAttribute attr) {
 		if (#["java.lang.Boolean", "boolean"].contains(attr.EAttributeType.instanceClassName))
 			"is" + attr.name.toFirstUpper
 		else
 			"get" + attr.name.toFirstUpper
 	}
-	
+
 	static def setterName(EAttribute attr) {
 		"set" + attr.name.toFirstUpper
 	}
-	
+
 	static def getterName(EReference attr) {
 		"get" + attr.name.toFirstUpper
 	}
-	
+
 	static def setterName(EReference attr) {
 		"set" + attr.name.toFirstUpper
 	}
-	
+
 	static def getAllEcores(MetamodelDecl mm) {
 		val ret = new ArrayList<EcoreDecl>
-		
+
 		if (mm.ecore != null)
 			ret.add(mm.ecore)
-		
+
 		if (mm.superMetamodel != null)
 			ret.add(mm.superMetamodel.ecore)
-		
+
 		return ret
 	}
-	
+
 	static def getAllAspects(MetamodelDecl mm) {
 		val ret = new ArrayList<AspectDecl>
-		
+
 		ret.addAll(mm.aspects)
-		
+
 		if (mm.superMetamodel != null)
 			ret.addAll(mm.superMetamodel.aspects)
-		
+
 		return ret
 	}
-	
+
 	static def getUri(MetamodelDecl mm) {
 		if (mm.ecore == null && mm.superMetamodel != null)
 			'''platform:/resource/«mm.name»Generated/model/«mm.name».ecore'''
 		else
 			mm.ecore.uri
 	}
-	
+
 	static def getPkg(MetamodelDecl mm) {
 		if (mm.ecore == null && mm.superMetamodel != null)
 		{
@@ -108,64 +108,64 @@ class K3SLEJvmModelInferrerHelper
 			val pkg = superPkg.copy(mm.name)
 			val uri = mm.uri
 			val genModelUri = '''platform:/resource/«mm.name»Generated/model/«mm.name».genmodel'''
-			
+
 			pkg.createEcore(uri.toString)
 			pkg.createGenModel(mm, uri.toString, genModelUri)
-			
+
 			return pkg
 		} else {
 			val uri = mm.ecore.uri
 			val pkg = ModelUtils.loadPkg(uri)
-			
+
 			return pkg
 		}
 	}
-	
+
 	static def copy(EPackage pkg, String pkgName) {
 		val newPkg = EcoreFactory.eINSTANCE.createEPackage => [
 			name = pkgName.toLowerCase
 			nsPrefix = pkgName.toLowerCase
 			nsURI = '''http://«pkgName.toLowerCase»/'''
 		]
-		
+
 		newPkg.EClassifiers.addAll(EcoreUtil.copyAll(pkg.EClassifiers))
-		
+
 		return newPkg
 	}
-	
+
 	static def createEcore(EPackage pkg, String uri) {
 		val resSet = new ResourceSetImpl
     	val res = resSet.createResource(org.eclipse.emf.common.util.URI.createURI(uri))
     	res.contents.add(pkg)
     	res.save(null)
 	}
-	
+
 	static def createGenModel(EPackage pkg, MetamodelDecl mm, String ecoreLocation, String genModelLocation) {
 		val genModelFact = GenModelFactory.eINSTANCE
 		val genModel = genModelFact.createGenModel
-		
+
 		genModel.complianceLevel = GenJDKLevel.JDK70_LITERAL
 		genModel.modelDirectory = '''/«mm.name»Generated/src'''
 		genModel.foreignModel.add(ecoreLocation)
 		genModel.modelName = mm.name
 		genModel.initialize(Collections.singleton(pkg))
-		
+
 		val genPackage = genModel.genPackages.head as GenPackage
 		genPackage.prefix = mm.name.toLowerCase.toFirstUpper
-		
+
 		val resSet = new ResourceSetImpl
 		val res = resSet.createResource(org.eclipse.emf.common.util.URI.createURI(genModelLocation))
 		res.contents.add(genModel)
 		res.save(null)
-		
+
 		genModel.generateCode
 	}
-	
+
 	static def generateCode(GenModel genModel) {
 		genModel.reconcile
 		genModel.canGenerate = true
 		genModel.validateModel = true
-		
+
 		val generator = GenModelUtil.createGenerator(genModel)
 		generator.generate(
 			genModel,
@@ -173,7 +173,7 @@ class K3SLEJvmModelInferrerHelper
 			new BasicMonitor.Printing(System.out)
 		)
 	}
-	
+
 	// TODO: fixme
 	static def weaveAspects(EPackage pkg, MetamodelDecl mm) {
 		mm.allAspects.forEach[asp |
@@ -182,7 +182,7 @@ class K3SLEJvmModelInferrerHelper
 				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 				.forall[op | op.parameters.head?.parameterType?.simpleName == cls.name]
 			]
-			
+
 			if (aspectized != null) {
 				asp.type.eAllContents.filter(JvmOperation)
 				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
@@ -190,12 +190,12 @@ class K3SLEJvmModelInferrerHelper
 					aspectized.EOperations.add(
 						EcoreFactory.eINSTANCE.createEOperation => [
 							val retType = pkg.getClassifierFor(op.returnType.simpleName)
-							
+
 							name = op.simpleName
 							op.parameters.forEach[p, i |
 								if (i > 0) {
 									val pType = pkg.getClassifierFor(p.parameterType.simpleName)
-									
+
 									EParameters += EcoreFactory.eINSTANCE.createEParameter => [pp |
 										pp.name = p.simpleName
 										pp.EType = if (pType != null) pType else EcorePackage.eINSTANCE.getClassifierFor("E" + p.parameterType.simpleName.toFirstUpper)
@@ -209,11 +209,11 @@ class K3SLEJvmModelInferrerHelper
 			}
 		]
 	}
-	
+
 	static def getClassifierFor(EPackage pkg, String name) {
 		return pkg.EClassifiers.findFirst[it.name == name]
 	}
-	
+
 	static def isComplete(MetamodelDecl mm) {
 		   (mm.ecore != null
 		&& mm.ecore.uri != null)
@@ -222,7 +222,7 @@ class K3SLEJvmModelInferrerHelper
 		&&  mm.superMetamodel.ecore.uri != null)
 		//&& isValidEcorePath(...)
 	}
-	
+
 	static def aspectizedBy(EClass cls, AspectDecl asp) {
 		if (asp.type != null && asp.type.annotations.size > 0) {
 			val className =
@@ -230,10 +230,10 @@ class K3SLEJvmModelInferrerHelper
 					.findFirst[annotation.qualifiedName == "fr.inria.triskell.k3.Aspect"]
 					.values.filter(JvmCustomAnnotationValue)
 					.head.values.head.toString
-			
+
 			return cls.name == className
 		}
-		
+
 		true
 	}
 }

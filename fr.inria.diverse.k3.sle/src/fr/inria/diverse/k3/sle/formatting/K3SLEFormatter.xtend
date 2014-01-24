@@ -9,7 +9,7 @@ import org.eclipse.xtext.formatting.impl.FormattingConfig
 class K3SLEFormatter extends AbstractDeclarativeFormatter
 {
 	//@Inject extension K3SLEGrammarAccess
-	
+
 	override protected void configureFormatting(FormattingConfig c) {
 	// It's usually a good idea to activate the following three statements.
 	// They will add and preserve newlines around comments

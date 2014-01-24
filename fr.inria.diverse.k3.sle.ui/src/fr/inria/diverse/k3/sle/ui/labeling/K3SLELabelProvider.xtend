@@ -15,7 +15,7 @@ class K3SLELabelProvider extends org.eclipse.xtext.xbase.ui.labeling.XbaseLabelP
 	}
 
 	// Labels and icons can be computed like this:
-	
+
 //	def text(Greeting ele) {
 //		'A greeting to ' + ele.name
 //	}

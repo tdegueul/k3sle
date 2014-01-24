@@ -17,18 +17,18 @@ class MatchingHelper
 {
 	EPackage pkgA
 	EPackage pkgB
-	
+
 	new(EPackage a, EPackage b) {
 		pkgA = a
 		pkgB = b
 	}
-	
+
 	def boolean match() {
 		pkgB.EClassifiers.filter(EClass).forall[clsB |
 			pkgA.EClassifiers.filter(EClass).exists[clsA | clsA.match(clsB)]
 		]
 	}
-	
+
 	def boolean match(EClass clsA, EClass clsB) {
 		val ret = 
 		    clsA.name == clsB.name
@@ -41,10 +41,10 @@ class MatchingHelper
 		&&  clsB.EReferences.forall[refB |
 				clsA.EReferences.exists[refA | refA.match(refB)]
 			]
-		
+
 		return ret
 	}
-	
+
 	def boolean match(EOperation opA, EOperation opB) {
 		val ret =
 		    opA.name == opB.name
@@ -76,19 +76,19 @@ class MatchingHelper
 						)
 				]
 			]
-		
+
 		return ret
 	}
-	
+
 	def boolean match(List<EParameter> paramsA, List<EParameter> paramsB) {
 		var rank = 0
-		
+
 		for (paramB : paramsB) {
 			if (rank >= paramsA.size)
 				return false
-			
+
 			val paramA = paramsA.get(rank)
-			
+
 			if (paramA.EType instanceof EDataType || paramB.EType instanceof EDataType)
 				if (paramA.EType.name != paramB.EType.name)
 					return false
@@ -99,7 +99,7 @@ class MatchingHelper
 			else
 				if (!(paramA.EType as EClass).EAllSuperTypes.contains(paramB.EType))
 					return false
-			
+
 			if (
 				   paramA.lowerBound != paramB.lowerBound
 				|| paramA.upperBound != paramB.upperBound
@@ -107,13 +107,13 @@ class MatchingHelper
 				|| paramA.ordered && !paramB.ordered
 			)
 				return false
-			
+
 			rank = rank + 1	
 		}
-		
+
 		true
 	}
-	
+
 	def boolean match(EAttribute attrA, EAttribute attrB) {
 		val ret =
 		    attrA.name == attrB.name
@@ -133,10 +133,10 @@ class MatchingHelper
 				)
 		&&  (attrA.lowerBound == attrB.lowerBound)
 		&&  (attrA.upperBound == attrB.upperBound)
-		
+
 		return ret
 	}
-	
+
 	def boolean match(EReference refA, EReference refB) {
 		val ret =
 		    refA.name == refB.name
@@ -147,18 +147,18 @@ class MatchingHelper
 		&&  (refA.lowerBound == refB.lowerBound)
 		&&  (refA.upperBound == refB.upperBound)
 		&&  (!(refA.EOpposite != null) || (refB.EOpposite != null && refA.EOpposite.name == refB.EOpposite.name))
-		
+
 		return ret
 	}
-	
+
 	PrintWriter debug
 	static final val DEBUG_FILE = "/tmp/k3sle.debug"
-	
+
 	def boolean log(String s) {
 		debug = new PrintWriter(new BufferedWriter(new FileWriter(DEBUG_FILE, true)))
 		debug.write("[" + new java.util.Date() + "] MatchingHelper: " + s + "\n")
 		debug.close
-		
+
 		true
 	}
 }
