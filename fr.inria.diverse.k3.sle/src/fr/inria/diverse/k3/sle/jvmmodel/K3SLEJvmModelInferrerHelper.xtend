@@ -243,6 +243,6 @@ class K3SLEJvmModelInferrerHelper
 			return cls.name == className
 		}
 
-		true
+		return false
 	}
 }
