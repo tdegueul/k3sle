@@ -16,7 +16,6 @@ import org.eclipse.emf.codegen.ecore.genmodel.GenJDKLevel
 import org.eclipse.emf.codegen.ecore.genmodel.generator.GenBaseGeneratorAdapter
 import org.eclipse.emf.codegen.ecore.genmodel.util.GenModelUtil
 import org.eclipse.emf.codegen.ecore.genmodel.GenModel
-import org.eclipse.emf.codegen.ecore.genmodel.GenPackage
 
 import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
 import fr.inria.diverse.k3.sle.k3sle.EcoreDecl
@@ -32,6 +31,7 @@ import org.eclipse.xtext.common.types.JvmCustomAnnotationValue
 
 import java.util.Collections
 import java.util.ArrayList
+import java.io.IOException
 
 class K3SLEJvmModelInferrerHelper
 {
@@ -73,10 +73,10 @@ class K3SLEJvmModelInferrerHelper
 	static def getAllEcores(MetamodelDecl mm) {
 		val ret = new ArrayList<EcoreDecl>
 
-		if (mm.ecore != null)
+		if (mm.ecore !== null)
 			ret.add(mm.ecore)
 
-		if (mm.superMetamodel != null)
+		if (mm.superMetamodel !== null)
 			ret.add(mm.superMetamodel.ecore)
 
 		return ret
@@ -87,21 +87,21 @@ class K3SLEJvmModelInferrerHelper
 
 		ret.addAll(mm.aspects)
 
-		if (mm.superMetamodel != null)
+		if (mm.superMetamodel !== null)
 			ret.addAll(mm.superMetamodel.aspects)
 
 		return ret
 	}
 
 	static def getUri(MetamodelDecl mm) {
-		if (mm.ecore == null && mm.superMetamodel != null)
+		if (mm.ecore === null && mm.superMetamodel !== null)
 			'''platform:/resource/«mm.name»Generated/model/«mm.name».ecore'''
 		else
 			mm.ecore.uri
 	}
 
 	static def getPkg(MetamodelDecl mm) {
-		if (mm.ecore == null && mm.superMetamodel != null)
+		if (mm.ecore === null && mm.superMetamodel !== null)
 		{
 			val superMM = mm.superMetamodel
 			val superPkg = ModelUtils.loadPkg(superMM.ecore.uri)
@@ -137,7 +137,12 @@ class K3SLEJvmModelInferrerHelper
 		val resSet = new ResourceSetImpl
     	val res = resSet.createResource(org.eclipse.emf.common.util.URI.createURI(uri))
     	res.contents.add(pkg)
-    	res.save(null)
+
+		try {
+			res.save(null)
+		} catch (IOException e) {
+			e.printStackTrace
+		}
 	}
 
 	static def createGenModel(EPackage pkg, MetamodelDecl mm, String ecoreLocation, String genModelLocation) {
@@ -150,15 +155,19 @@ class K3SLEJvmModelInferrerHelper
 		genModel.modelName = mm.name
 		genModel.initialize(Collections.singleton(pkg))
 
-		val genPackage = genModel.genPackages.head as GenPackage
+		val genPackage = genModel.genPackages.head
 		genPackage.prefix = mm.name.toLowerCase.toFirstUpper
 
 		val resSet = new ResourceSetImpl
 		val res = resSet.createResource(org.eclipse.emf.common.util.URI.createURI(genModelLocation))
 		res.contents.add(genModel)
-		res.save(null)
 
-		genModel.generateCode
+		try {
+			res.save(null)
+			genModel.generateCode
+		} catch (IOException e) {
+			e.printStackTrace
+		}
 	}
 
 	static def generateCode(GenModel genModel) {
@@ -183,7 +192,7 @@ class K3SLEJvmModelInferrerHelper
 				.forall[op | op.parameters.head?.parameterType?.simpleName == cls.name]
 			]
 
-			if (aspectized != null) {
+			if (aspectized !== null) {
 				asp.type.eAllContents.filter(JvmOperation)
 				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 				.forEach[op |
@@ -198,11 +207,11 @@ class K3SLEJvmModelInferrerHelper
 
 									EParameters += EcoreFactory.eINSTANCE.createEParameter => [pp |
 										pp.name = p.simpleName
-										pp.EType = if (pType != null) pType else EcorePackage.eINSTANCE.getClassifierFor("E" + p.parameterType.simpleName.toFirstUpper)
+										pp.EType = if (pType !== null) pType else EcorePackage.eINSTANCE.getClassifierFor("E" + p.parameterType.simpleName.toFirstUpper)
 									]
 								}
 							]
-							EType = if (retType != null) retType else EcorePackage.eINSTANCE.getClassifierFor("E" + op.returnType.simpleName.toFirstUpper)
+							EType = if (retType !== null) retType else EcorePackage.eINSTANCE.getClassifierFor("E" + op.returnType.simpleName.toFirstUpper)
 						]
 					)
 				]
@@ -215,16 +224,16 @@ class K3SLEJvmModelInferrerHelper
 	}
 
 	static def isComplete(MetamodelDecl mm) {
-		   (mm.ecore != null
-		&& mm.ecore.uri != null)
-		|| (mm.ecore == null
-		&&  mm.superMetamodel.ecore != null
-		&&  mm.superMetamodel.ecore.uri != null)
+		   (mm.ecore !== null
+		&& mm.ecore.uri !== null)
+		|| (mm.ecore === null
+		&&  mm.superMetamodel.ecore !== null
+		&&  mm.superMetamodel.ecore.uri !== null)
 		//&& isValidEcorePath(...)
 	}
 
 	static def aspectizedBy(EClass cls, AspectDecl asp) {
-		if (asp.type != null && asp.type.annotations.size > 0) {
+		if (asp.type !== null && asp.type.annotations.size > 0) {
 			val className =
 				asp.type.annotations
 					.findFirst[annotation.qualifiedName == "fr.inria.triskell.k3.Aspect"]
