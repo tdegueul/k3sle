@@ -172,8 +172,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					]
 					
 					mm.aspects
-					// !!!
-					.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
+					.filter[cls.aspectizedBy(it)]
 					.forEach[asp |
 						asp.type.declaredOperations
 						.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
@@ -216,8 +215,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						val superMM = mm.superMetamodel
 						
 						superMM.aspects
-						// !!!
-						.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head.parameterType.simpleName == cls.name]]
+						.filter[cls.aspectizedBy(it)]
 						.forEach[asp |
 							asp.type.declaredOperations
 							.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
@@ -469,8 +467,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					]
 					
 					mm.aspects
-					// !!!
-					.filter[type.declaredOperations.filter[op | !op.simpleName.startsWith("priv")].forall[parameters.head?.parameterType?.simpleName == cls.name]]
+					.filter[cls.aspectizedBy(it)]
 					.forEach[asp |
 						asp.type.declaredOperations
 						.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]

@@ -28,12 +28,13 @@ import fr.inria.diverse.k3.sle.lib.MatchingHelper
 import org.eclipse.xtext.naming.QualifiedName
 
 import org.eclipse.xtext.common.types.JvmOperation
+import org.eclipse.xtext.common.types.JvmCustomAnnotationValue
 
 import java.util.Collections
 import java.util.ArrayList
 
 class K3SLEJvmModelInferrerHelper
-{	
+{
 	static def normalize(QualifiedName name) {
 		name.skipLast(1).toLowerCase.append(name.lastSegment.toFirstUpper)
 	}
@@ -220,5 +221,19 @@ class K3SLEJvmModelInferrerHelper
 		&&  mm.superMetamodel.ecore != null
 		&&  mm.superMetamodel.ecore.uri != null)
 		//&& isValidEcorePath(...)
+	}
+	
+	static def aspectizedBy(EClass cls, AspectDecl asp) {
+		if (asp.type != null && asp.type.annotations.size > 0) {
+			val className =
+				asp.type.annotations
+					.findFirst[annotation.qualifiedName == "fr.inria.triskell.k3.Aspect"]
+					.values.filter(JvmCustomAnnotationValue)
+					.head.values.head.toString
+			
+			return cls.name == className
+		}
+		
+		true
 	}
 }
