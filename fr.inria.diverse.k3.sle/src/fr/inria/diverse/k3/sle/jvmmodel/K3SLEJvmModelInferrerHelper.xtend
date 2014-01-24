@@ -32,10 +32,6 @@ import org.eclipse.xtext.common.types.JvmOperation
 import java.util.Collections
 import java.util.ArrayList
 
-import java.nio.file.Files
-import java.nio.file.Paths
-import org.eclipse.emf.common.util.URI
-
 class K3SLEJvmModelInferrerHelper
 {	
 	static def normalize(QualifiedName name) {
@@ -182,14 +178,14 @@ class K3SLEJvmModelInferrerHelper
 		mm.allAspects.forEach[asp |
 			val aspectized = pkg.EClassifiers.filter(EClass).findFirst[cls |
 				asp.type.eAllContents.filter(JvmOperation)
-					.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
-					.forall[op | op.parameters.head?.parameterType?.simpleName == cls.name]
+				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+				.forall[op | op.parameters.head?.parameterType?.simpleName == cls.name]
 			]
 			
 			if (aspectized != null) {
 				asp.type.eAllContents.filter(JvmOperation)
-					.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
-					.forEach[op |
+				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+				.forEach[op |
 					aspectized.EOperations.add(
 						EcoreFactory.eINSTANCE.createEOperation => [
 							val retType = pkg.getClassifierFor(op.returnType.simpleName)
