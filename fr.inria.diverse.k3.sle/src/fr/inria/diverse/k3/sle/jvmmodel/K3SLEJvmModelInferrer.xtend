@@ -8,7 +8,6 @@ import fr.inria.diverse.k3.sle.k3sle.TransformationDecl
 import fr.inria.diverse.k3.sle.lib.ModelUtils
 import fr.inria.diverse.k3.sle.lib.ModelTypeException
 import fr.inria.diverse.k3.sle.lib.GenericAdapter
-import fr.inria.diverse.k3.sle.lib.AdapterFactory
 import fr.inria.diverse.k3.sle.lib.ModelType
 import fr.inria.diverse.k3.sle.lib.IFactory
 import fr.inria.diverse.k3.sle.lib.EObjectAdapter
@@ -154,7 +153,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 									return new fr.inria.diverse.k3.sle.lib.ListAdapter<
 										«intName»,
 										«inRef.EReferenceType.fullyQualifiedName.toString»,
-										«adapName»>(adaptee.«ref.getterName»(), new «adapName»Factory()
+										«adapName»>(adaptee.«ref.getterName»(), «adapName».class
 									) ;
 								'''
 							]
@@ -261,18 +260,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						]
 					}
 				]
-
-				acceptor.accept(mm.toClass(mm.factoryNameFor(superType, inCls.name)))
-				.initializeLater[
-					superTypes += newTypeRef(AdapterFactory, newTypeRef(inCls.fullyQualifiedName.toString))
-
-					members += mm.toMethod("newObject", newTypeRef(GenericAdapter, newTypeRef(inCls.fullyQualifiedName.toString)))[
-						parameters += mm.toParameter("adaptee", newTypeRef(inCls.fullyQualifiedName.toString))
-						body = '''
-							return new «mm.adapterNameFor(superType, inCls.name)»(adaptee) ;
-						'''
-					]
-				]
 			]
 
 			acceptor.accept(mm.toClass(mm.adapterNameFor(superType, mm.factoryName)))
@@ -375,7 +362,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 									return new fr.inria.diverse.k3.sle.lib.EListAdapter<
 										«ref.EReferenceType.fullyQualifiedName.toString»,
 										«inRef.EReferenceType.fullyQualifiedName.toString»,
-										«adapName»>(adaptee.«ref.getterName»(), new «adapName»Factory()
+										«adapName»>(adaptee.«ref.getterName»(), «adapName».class
 									) ;
 								'''
 							]
@@ -391,18 +378,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 									'''
 								]
 						}
-					]
-				]
-
-				acceptor.accept(mm.toClass(mm.adapterNameFor(superMM, cls.name) + "Factory"))
-				.initializeLater[
-					superTypes += newTypeRef(AdapterFactory, newTypeRef(inCls.fullyQualifiedName.toString))
-
-					members += mm.toMethod("newObject", newTypeRef(GenericAdapter, newTypeRef(inCls.fullyQualifiedName.toString)))[
-						parameters += mm.toParameter("adaptee", newTypeRef(inCls.fullyQualifiedName.toString))
-						body = '''
-							return new «mm.adapterNameFor(superMM, cls.name)»(adaptee) ;
-						'''
 					]
 				]
 			]

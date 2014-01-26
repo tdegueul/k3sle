@@ -19,10 +19,6 @@ abstract class GenericAdapter<E> {
 	def E getAdaptee() { adaptee }
 }
 
-interface AdapterFactory<A> {
-	def GenericAdapter<A> newObject(A adaptee)
-}
-
 abstract class EObjectAdapter<E extends EObject> extends GenericAdapter<E> {
 	new(E a) { super(a) }
 
@@ -106,11 +102,11 @@ abstract class EObjectAdapter<E extends EObject> extends GenericAdapter<E> {
 class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 {
 	List<F> adaptee
-	AdapterFactory<F> factory
+	Class<?> adapType
 
-	new(List<F> a, AdapterFactory<F> f) {
+	new(List<F> a, Class<?> type) {
 		adaptee = a
-		factory = f
+		adapType = type
 	}
 
 	override add(E e) {
@@ -142,7 +138,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override get(int index) {
-		factory.newObject(adaptee.get(index)) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.get(index)) as E
 	}
 
 	override indexOf(Object o) {
@@ -154,7 +150,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override iterator() {
-		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(factory))
+		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(adapType))
 	}
 
 	override lastIndexOf(Object o) {
@@ -174,7 +170,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override remove(int index) {
-		factory.newObject(adaptee.remove(index)) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.remove(index)) as E
 	}
 
 	override removeAll(Collection<?> c) {
@@ -186,7 +182,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override set(int index, E element) {
-		factory.newObject(adaptee.set(index, decapsulate(element))) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.set(index, decapsulate(element))) as E
 	}
 
 	override size() {
@@ -194,7 +190,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override subList(int fromIndex, int toIndex) {
-		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), factory)
+		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), adapType)
 	}
 
 	override toArray() {
@@ -213,12 +209,12 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, A> implements EList<E>
 {
 	EList<F> adaptee
-	AdapterFactory<F> factory
+	Class<?> adapType
 
-	new(EList<F> a, AdapterFactory<F> f) {
-		super(a, f)
+	new(EList<F> a, Class<?> type) {
+		super(a, type)
 		adaptee = a
-		factory = f
+		adapType = type
 	}
 
 	override add(E e) {
@@ -250,7 +246,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override get(int index) {
-		factory.newObject(adaptee.get(index)) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.get(index)) as E
 	}
 
 	override indexOf(Object o) {
@@ -262,7 +258,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override iterator() {
-		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(factory))
+		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(adapType))
 	}
 
 	override lastIndexOf(Object o) {
@@ -282,7 +278,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override remove(int index) {
-		factory.newObject(adaptee.remove(index)) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.remove(index)) as E
 	}
 
 	override removeAll(Collection<?> c) {
@@ -294,7 +290,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override set(int index, E element) {
-		factory.newObject(adaptee.set(index, decapsulate(element))) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.set(index, decapsulate(element))) as E
 	}
 
 	override size() {
@@ -302,7 +298,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override subList(int fromIndex, int toIndex) {
-		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), factory)
+		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), adapType)
 	}
 
 	override toArray() {
@@ -318,16 +314,16 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override move(int newPosition, int oldPosition) {
-		factory.newObject(adaptee.move(newPosition, oldPosition)) as E
+		adapType.declaredConstructors.head.newInstance(adaptee.move(newPosition, oldPosition)) as E
 	}
 }
 
 class IteratorTranslator<E, F> implements Function<E, F> {
-	AdapterFactory<E> factory
+	Class<?> adapType
 
-	new(AdapterFactory<E> f) { factory = f }
+	new(Class<?> type) { adapType = type }
 
 	override apply(E arg) {
-		factory.newObject(arg) as F
+		adapType.declaredConstructors.head.newInstance(arg) as F
 	}
 }
