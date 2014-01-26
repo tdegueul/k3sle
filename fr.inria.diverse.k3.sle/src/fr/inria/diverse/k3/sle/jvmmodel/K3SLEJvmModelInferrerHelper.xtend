@@ -224,11 +224,11 @@ class K3SLEJvmModelInferrerHelper
 	}
 
 	static def isComplete(MetamodelDecl mm) {
-		   (mm.ecore !== null
-		&& mm.ecore.uri !== null)
-		|| (mm.ecore === null
-		&&  mm.superMetamodel.ecore !== null
-		&&  mm.superMetamodel.ecore.uri !== null)
+		   (mm?.ecore !== null
+		&& mm?.ecore?.uri !== null)
+		|| (mm?.ecore === null
+		&&  mm?.superMetamodel?.ecore !== null
+		&&  mm?.superMetamodel?.ecore?.uri !== null)
 		//&& isValidEcorePath(...)
 	}
 
@@ -237,8 +237,8 @@ class K3SLEJvmModelInferrerHelper
 			val className =
 				asp.type.annotations
 					.findFirst[annotation.qualifiedName == "fr.inria.triskell.k3.Aspect"]
-					.values.filter(JvmCustomAnnotationValue)
-					.head.values.head.toString
+					?.values.filter(JvmCustomAnnotationValue)
+					?.head?.values?.head?.toString
 
 			return cls.name == className
 		}
