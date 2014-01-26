@@ -17,6 +17,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EPackage
 import org.eclipse.emf.ecore.EClass
+import org.eclipse.emf.ecore.EEnum
 import org.eclipse.emf.ecore.resource.Resource
 
 import org.eclipse.xtext.naming.IQualifiedNameProvider
@@ -123,8 +124,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 					cls.EAllAttributes.forEach[attr |
 						val baseType =
-							if (attr.EAttributeType !== null)
+							if (attr.EAttributeType?.instanceClassName !== null)
 								newTypeRef(attr.EAttributeType.instanceClassName)
+							else if (attr.EAttributeType !== null && attr.EAttributeType instanceof EEnum)
+								newTypeRef(attr.EAttributeType.name)
 							else
 								newTypeRef(superType.interfaceNameFor(attr.EType.name))
 
@@ -333,8 +336,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 					cls.EAllAttributes.forEach[attr |
 						val baseType =
-							if (attr.EAttributeType !== null)
+							if (attr.EAttributeType?.instanceClassName !== null)
 								newTypeRef(attr.EAttributeType.instanceClassName)
+							else if (attr.EAttributeType !== null && attr.EAttributeType instanceof EEnum)
+								newTypeRef(attr.EAttributeType.name)
 							else
 								newTypeRef(inCls.fullyQualifiedName.toString)
 
@@ -413,15 +418,17 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 			pkg.EClassifiers.filter(EClass).forEach[cls |
 				acceptor.accept(cls.toInterface(mt.interfaceNameFor(cls.name), []))
-				.initializeLater[					
+				.initializeLater[
 					cls.ESuperTypes.forEach[sup |
 						superTypes += newTypeRef(mt.interfaceNameFor(sup.name))
 					]
 
 					cls.EAttributes.forEach[attr |
 						val baseType =
-							if (attr.EAttributeType !== null)
+							if (attr.EAttributeType?.instanceClassName !== null)
 								newTypeRef(attr.EAttributeType.instanceClassName)
+							else if (attr.EAttributeType !== null && attr.EAttributeType instanceof EEnum)
+								newTypeRef(attr.EAttributeType.name)
 							else
 								newTypeRef(mt.interfaceNameFor(attr.EType.name))
 
