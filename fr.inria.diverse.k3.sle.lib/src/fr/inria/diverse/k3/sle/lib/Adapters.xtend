@@ -102,9 +102,9 @@ abstract class EObjectAdapter<E extends EObject> extends GenericAdapter<E> {
 class ListAdapter<E, F> implements List<E>
 {
 	List<F> adaptee
-	Class<?> adapType
+	Class<? extends GenericAdapter<F>> adapType
 
-	new(List<F> a, Class<?> type) {
+	new(List<F> a, Class<? extends GenericAdapter<F>> type) {
 		adaptee = a
 		adapType = type
 	}
@@ -209,9 +209,9 @@ class ListAdapter<E, F> implements List<E>
 class EListAdapter<E, F> extends ListAdapter<E, F> implements EList<E>
 {
 	EList<F> adaptee
-	Class<?> adapType
+	Class<? extends GenericAdapter<F>> adapType
 
-	new(EList<F> a, Class<?> type) {
+	new(EList<F> a, Class<? extends GenericAdapter<F>> type) {
 		super(a, type)
 		adaptee = a
 		adapType = type
