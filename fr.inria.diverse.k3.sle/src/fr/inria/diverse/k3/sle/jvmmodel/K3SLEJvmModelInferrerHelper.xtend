@@ -186,11 +186,7 @@ class K3SLEJvmModelInferrerHelper
 	// TODO: fixme
 	static def weaveAspects(EPackage pkg, MetamodelDecl mm) {
 		mm.allAspects.forEach[asp |
-			val aspectized = pkg.EClassifiers.filter(EClass).findFirst[cls |
-				asp.type.eAllContents.filter(JvmOperation)
-				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
-				.forall[op | op.parameters.head?.parameterType?.simpleName == cls.name]
-			]
+			val aspectized = pkg.EClassifiers.filter(EClass).findFirst[aspectizedBy(asp)]
 
 			if (aspectized !== null) {
 				asp.type.eAllContents.filter(JvmOperation)
