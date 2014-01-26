@@ -99,7 +99,7 @@ abstract class EObjectAdapter<E extends EObject> extends GenericAdapter<E> {
 	}
 }
 
-class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
+class ListAdapter<E, F> implements List<E>
 {
 	List<F> adaptee
 	Class<?> adapType
@@ -190,7 +190,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 
 	override subList(int fromIndex, int toIndex) {
-		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), adapType)
+		new ListAdapter<E, F>(adaptee.subList(fromIndex, toIndex), adapType)
 	}
 
 	override toArray() {
@@ -206,7 +206,7 @@ class ListAdapter<E, F, A extends GenericAdapter<F>> implements List<E>
 	}
 }
 
-class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, A> implements EList<E>
+class EListAdapter<E, F> extends ListAdapter<E, F> implements EList<E>
 {
 	EList<F> adaptee
 	Class<?> adapType
@@ -298,7 +298,7 @@ class EListAdapter<E, F, A extends GenericAdapter<F>> extends ListAdapter<E, F, 
 	}
 
 	override subList(int fromIndex, int toIndex) {
-		new ListAdapter<E, F, A>(adaptee.subList(fromIndex, toIndex), adapType)
+		new ListAdapter<E, F>(adaptee.subList(fromIndex, toIndex), adapType)
 	}
 
 	override toArray() {

@@ -155,8 +155,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 								body = '''
 									return new fr.inria.diverse.k3.sle.lib.ListAdapter<
 										«intName»,
-										«inRef.EReferenceType.fullyQualifiedName.toString»,
-										«adapName»>(adaptee.«ref.getterName»(), «adapName».class
+										«inRef.EReferenceType.fullyQualifiedName.toString»
+										>(adaptee.«ref.getterName»(), «adapName».class
 									) ;
 								'''
 							]
@@ -366,8 +366,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 								body = '''
 									return new fr.inria.diverse.k3.sle.lib.EListAdapter<
 										«ref.EReferenceType.fullyQualifiedName.toString»,
-										«inRef.EReferenceType.fullyQualifiedName.toString»,
-										«adapName»>(adaptee.«ref.getterName»(), «adapName».class
+										«inRef.EReferenceType.fullyQualifiedName.toString»
+										>(adaptee.«ref.getterName»(), «adapName».class
 									) ;
 								'''
 							]
