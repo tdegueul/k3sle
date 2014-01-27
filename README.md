@@ -4,10 +4,10 @@ K3SLE
 TODO
 ----
 * Metamodel/ModelType attributes and operations
-* Improves the subtyping algorithm so that it takes aspects into account
+* <s>Improves the subtyping algorithm so that it takes aspects into account</s>
 * Manage subpackages
 * Automatically find the root(s) of metamodels
-* Allow inheritance between metamodels 
+* <s>Allow inheritance between metamodels</s>
 * Allow multiple inheritance of metamodels
 * Allow the import of multiple Ecore files in a metamodel declaration
 * Allow the definition of model types independently of any metamodel

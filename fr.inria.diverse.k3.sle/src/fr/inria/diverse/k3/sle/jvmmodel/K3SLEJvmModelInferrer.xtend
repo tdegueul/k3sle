@@ -68,8 +68,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			return ;
 
 		// !!!
-		log("Infering MM " + mm.name)
-		val pkg = mm.pkg		
+		val pkg = mm.pkg
 		val adapSwitch = new StringBuilder
 
 		pkg.weaveAspects(mm)
@@ -77,7 +76,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		registeredMTs
 		.filter[name, definition | pkg.subtypeOf(definition.value)]
 		.forEach[name, definition |
-			val superType = definition.key 
+			val superType = definition.key
 			val superPkg  = definition.value
 
 			acceptor.accept(mm.toClass(mm.adapterNameFor(superType, mm.name)))
@@ -392,8 +391,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	}
 
 	def dispatch void infer(ModelTypeDecl mt, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
-		log("Infering MT " + mt.name)
-
 		if (mt.extracted !== null && mt.extracted.isComplete) {
 			// !!!
 			val mm = mt.extracted
@@ -486,7 +483,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	}
 
 	def dispatch void infer(TransformationDecl transfo, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
-		log("Infering T " + transfo.name)
 		acceptor.accept(transfo.toClass(transfo.fullyQualifiedName))
 		.initializeLater[
 			// !!!

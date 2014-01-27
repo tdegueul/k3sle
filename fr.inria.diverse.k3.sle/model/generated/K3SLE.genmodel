@@ -4,7 +4,7 @@
     editorDirectory="/fr.inria.diverse.k3.sle.editor/src" modelPluginID="fr.inria.diverse.k3.sle"
     forceOverwrite="true" modelName="K3SLE" updateClasspath="false" rootExtendsClass="org.eclipse.emf.ecore.impl.MinimalEObjectImpl$Container"
     complianceLevel="5.0" copyrightFields="false" editPluginID="fr.inria.diverse.k3.sle.edit"
-    editorPluginID="fr.inria.diverse.k3.sle.editor" runtimeVersion="2.9" usedGenPackages="../../../org.eclipse.xtext.common.types/model/JavaVMTypes.genmodel#//types ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xbase ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xtype">
+    editorPluginID="fr.inria.diverse.k3.sle.editor" runtimeVersion="2.10" usedGenPackages="../../../org.eclipse.xtext.common.types/model/JavaVMTypes.genmodel#//types ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xbase ../../../org.eclipse.xtext.xbase/model/Xbase.genmodel#//xtype">
   <genPackages prefix="K3sle" basePackage="fr.inria.diverse.k3.sle" disposableProviderFactory="true"
       fileExtensions="k3sle" ecorePackage="K3SLE.ecore#/">
     <genClasses ecoreClass="K3SLE.ecore#//ModelRoot">

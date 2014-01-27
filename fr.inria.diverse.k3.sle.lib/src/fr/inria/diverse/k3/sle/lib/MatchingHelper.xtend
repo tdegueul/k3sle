@@ -30,7 +30,7 @@ class MatchingHelper
 	}
 
 	def boolean match(EClass clsA, EClass clsB) {
-		val ret = 
+		val ret =
 		    clsA.name == clsB.name
 		&&  clsB.EOperations.forall[opB |
 				clsA.EOperations.exists[opA | opA.match(opB)]
@@ -108,7 +108,7 @@ class MatchingHelper
 			)
 				return false
 
-			rank = rank + 1	
+			rank = rank + 1
 		}
 
 		true

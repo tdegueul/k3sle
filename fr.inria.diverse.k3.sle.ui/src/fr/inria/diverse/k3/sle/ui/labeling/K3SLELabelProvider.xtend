@@ -4,7 +4,7 @@ import com.google.inject.Inject
 
 /**
  * Provides labels for a EObjects.
- * 
+ *
  * see http://www.eclipse.org/Xtext/documentation.html#labelProvider
  */
 class K3SLELabelProvider extends org.eclipse.xtext.xbase.ui.labeling.XbaseLabelProvider

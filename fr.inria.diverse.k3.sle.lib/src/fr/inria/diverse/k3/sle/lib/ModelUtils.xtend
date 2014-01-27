@@ -20,5 +20,5 @@ class ModelUtils
 		val pkg = rs.getResource(uri, true)
 
 		pkg.contents.get(0) as EPackage
-	}	
+	}
 }
