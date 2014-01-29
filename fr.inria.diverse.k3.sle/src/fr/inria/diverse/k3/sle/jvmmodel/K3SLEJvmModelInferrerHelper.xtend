@@ -17,20 +17,24 @@ import org.eclipse.emf.codegen.ecore.genmodel.generator.GenBaseGeneratorAdapter
 import org.eclipse.emf.codegen.ecore.genmodel.util.GenModelUtil
 import org.eclipse.emf.codegen.ecore.genmodel.GenModel
 
-import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
-import fr.inria.diverse.k3.sle.k3sle.EcoreDecl
-import fr.inria.diverse.k3.sle.k3sle.AspectDecl
+import fr.inria.diverse.k3.sle.metamodel.k3sle.Metamodel
+import fr.inria.diverse.k3.sle.metamodel.k3sle.ModelType
+import fr.inria.diverse.k3.sle.metamodel.k3sle.EcoreImport
+import fr.inria.diverse.k3.sle.metamodel.k3sle.AspectImport
+import fr.inria.diverse.k3.sle.metamodel.k3sle.MegamodelRoot
+import fr.inria.diverse.k3.sle.metamodel.k3sle.Transformation
 
 import fr.inria.diverse.k3.sle.lib.ModelUtils
 import fr.inria.diverse.k3.sle.lib.MatchingHelper
 
 import org.eclipse.xtext.naming.QualifiedName
 
-import org.eclipse.xtext.common.types.JvmOperation
 import org.eclipse.xtext.common.types.JvmCustomAnnotationValue
+import org.eclipse.xtext.common.types.JvmGenericType
 
 import java.util.Collections
 import java.util.ArrayList
+
 import java.io.IOException
 
 class K3SLEJvmModelInferrerHelper
@@ -47,7 +51,7 @@ class K3SLEJvmModelInferrerHelper
 		"I" + pkg.name.toFirstUpper + "Factory"
 	}
 
-	static def dispatch getFactoryName(MetamodelDecl mm) {
+	static def dispatch getFactoryName(Metamodel mm) {
 		mm.name + "Factory"
 	}
 
@@ -70,40 +74,40 @@ class K3SLEJvmModelInferrerHelper
 		"set" + attr.name.toFirstUpper
 	}
 
-	static def getAllEcores(MetamodelDecl mm) {
-		val ret = new ArrayList<EcoreDecl>
+	static def getAllEcores(Metamodel mm) {
+		val ret = new ArrayList<EcoreImport>
 
 		if (mm.ecore !== null)
 			ret.add(mm.ecore)
 
-		if (mm.superMetamodel !== null)
-			ret.add(mm.superMetamodel.ecore)
+		if (mm.inheritanceRelation?.superMetamodel !== null)
+			ret.add(mm.inheritanceRelation.superMetamodel.ecore)
 
 		return ret
 	}
 
-	static def getAllAspects(MetamodelDecl mm) {
-		val ret = new ArrayList<AspectDecl>
+	static def getAllAspects(Metamodel mm) {
+		val ret = new ArrayList<AspectImport>
 
 		ret.addAll(mm.aspects)
 
-		if (mm.superMetamodel !== null)
-			ret.addAll(mm.superMetamodel.aspects)
+		if (mm.inheritanceRelation?.superMetamodel !== null)
+			ret.addAll(mm.inheritanceRelation.superMetamodel.aspects)
 
 		return ret
 	}
 
-	static def getUri(MetamodelDecl mm) {
-		if (mm.ecore === null && mm.superMetamodel !== null)
+	static def getUri(Metamodel mm) {
+		if (mm?.ecore === null && mm?.inheritanceRelation?.superMetamodel !== null)
 			'''platform:/resource/«mm.name»Generated/model/«mm.name».ecore'''
-		else
+		else if (mm?.ecore !== null)
 			mm.ecore.uri
 	}
 
-	static def getPkg(MetamodelDecl mm) {
-		if (mm.ecore === null && mm.superMetamodel !== null)
+	static def getInferredPkg(Metamodel mm) {
+		if (mm.ecore === null && mm.inheritanceRelation?.superMetamodel !== null)
 		{
-			val superMM = mm.superMetamodel
+			val superMM = mm.inheritanceRelation?.superMetamodel
 			val superPkg = ModelUtils.loadPkg(superMM.ecore.uri)
 			val pkg = superPkg.copy(mm.name)
 			val uri = mm.uri
@@ -119,6 +123,10 @@ class K3SLEJvmModelInferrerHelper
 
 			return pkg
 		}
+	}
+
+	static def copy(EPackage pkg) {
+		copy(pkg, pkg.name)
 	}
 
 	static def copy(EPackage pkg, String pkgName) {
@@ -145,7 +153,7 @@ class K3SLEJvmModelInferrerHelper
 		}
 	}
 
-	static def createGenModel(EPackage pkg, MetamodelDecl mm, String ecoreLocation, String genModelLocation) {
+	static def createGenModel(EPackage pkg, Metamodel mm, String ecoreLocation, String genModelLocation) {
 		val genModelFact = GenModelFactory.eINSTANCE
 		val genModel = genModelFact.createGenModel
 
@@ -184,12 +192,12 @@ class K3SLEJvmModelInferrerHelper
 	}
 
 	// TODO: fixme
-	static def weaveAspects(EPackage pkg, MetamodelDecl mm) {
+	static def weaveAspects(EPackage pkg, Metamodel mm) {
 		mm.allAspects.forEach[asp |
 			val aspectized = pkg.EClassifiers.filter(EClass).findFirst[aspectizedBy(asp)]
 
 			if (aspectized !== null) {
-				asp.type.eAllContents.filter(JvmOperation)
+				(asp.aspectRef.type as JvmGenericType).declaredOperations
 				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 				.forEach[op |
 					aspectized.EOperations.add(
@@ -219,19 +227,31 @@ class K3SLEJvmModelInferrerHelper
 		return pkg.EClassifiers.findFirst[it.name == name]
 	}
 
-	static def isComplete(MetamodelDecl mm) {
-		   (mm?.ecore !== null
-		&& mm?.ecore?.uri !== null)
-		|| (mm?.ecore === null
-		&&  mm?.superMetamodel?.ecore !== null
-		&&  mm?.superMetamodel?.ecore?.uri !== null)
-		//&& isValidEcorePath(...)
+	static def dispatch boolean isValid(Metamodel mm) {
+		  (mm.ecore?.uri !== null ||
+		  	(mm.inheritanceRelation?.superMetamodel !== null && mm.inheritanceRelation.superMetamodel.isValid))
+		&& mm.aspects.forall[aspectRef.type instanceof JvmGenericType]
 	}
 
-	static def aspectizedBy(EClass cls, AspectDecl asp) {
-		if (asp.type !== null && asp.type.annotations.size > 0) {
+	static def dispatch boolean isValid(ModelType mt) {
+		(mt.extracted !== null && mt.extracted.isValid)
+	}
+
+	static def dispatch boolean isValid(Transformation t) {
+		true
+	}
+
+	static def dispatch boolean isValid(MegamodelRoot root) {
+		root.elements.forall[isValid]
+	}
+
+	static def aspectizedBy(EClass cls, AspectImport asp) {
+		if (asp.aspectRef?.type !== null
+			&& asp.aspectRef.type instanceof JvmGenericType
+			&& (asp.aspectRef.type as JvmGenericType).annotations.size > 0
+		) {
 			val className =
-				asp.type.annotations
+				(asp.aspectRef.type as JvmGenericType).annotations
 					.findFirst[annotation.qualifiedName == "fr.inria.triskell.k3.Aspect"]
 					?.values.filter(JvmCustomAnnotationValue)
 					?.head?.values?.head?.toString

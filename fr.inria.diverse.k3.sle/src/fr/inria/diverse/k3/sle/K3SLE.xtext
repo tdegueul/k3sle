@@ -1,76 +1,49 @@
 grammar fr.inria.diverse.k3.sle.K3SLE with org.eclipse.xtext.xbase.Xbase
 
-generate k3sle "http://www.inria.fr/diverse/k3/sle/"
+import "http://www.inria.fr/diverse/k3/sle"
 
-import "http://www.eclipse.org/xtext/common/JavaVMTypes" as jvmTypes
-
-ModelRoot:
-	PackageDecl?
+MegamodelRoot:
+	(package = PackageDecl)?
 	(imports = XImportSection)?
-	(elements += Declaration)*
+	(elements += Element)*
 ;
 
 PackageDecl:
 	'package' name = QualifiedName
 ;
 
-Declaration:
-	MetamodelDecl | ModelTypeDecl | TransformationDecl
+Element:
+	Metamodel | ModelType | Transformation
 ;
 
-MetamodelDecl:
-	'metamodel' name = ValidID ('inherits' superMetamodel = [MetamodelDecl | QualifiedName])? '{'
-		(ecore = EcoreDecl)?
-		(aspects += AspectDecl)*
-		(
-			'features' '{'
-				(features += FeatureDef)*
-			'}'
-		)?
+Metamodel:
+	'metamodel' name = ValidID (inheritanceRelation = Inheritance)?  '{'
+		(ecore = EcoreImport)?
+		(aspects += AspectImport)*
 	'}'
 ;
 
-ModelTypeDecl:
-	'modeltype' name = ValidID ('extract' extracted = [MetamodelDecl | QualifiedName])? '{'
-		(
-			'features' '{'
-				(features += FeatureDecl)*
-			'}'
-		)?
+Inheritance:
+	'inherits' superMetamodel = [Metamodel | QualifiedName]
+;
+
+ModelType:
+	'modeltype' name = ValidID ('extract' extracted = [Metamodel | QualifiedName])? '{'
+		(ecore = EcoreImport)?
 	'}'
 ;
 
-TransformationDecl:
+Transformation:
 	(main ?= '@Main')?
-	'transformation' name = ValidID '(' (parameters += FullJvmFormalParameter (',' parameters += FullJvmFormalParameter)*)? ')'
+	'transformation' (returnTypeRef = JvmTypeReference)? name = ValidID
+	'(' (parameters += FullJvmFormalParameter (',' parameters += FullJvmFormalParameter)*)? ')'
 	body = XBlockExpression
 ;
 
-EcoreDecl:
+EcoreImport:
 	'ecore' uri = STRING
 ;
 
-AspectDecl:
-	'aspect' type = [jvmTypes::JvmGenericType | QualifiedName]
-;
-
-FeatureDef:
-	AttributeDef | OperationDef
-;
-
-FeatureDecl:
-	AttributeDef | OperationDecl
-;
-
-AttributeDef:
-	'attribute' name = ValidID ':' type = JvmTypeReference
-;
-
-OperationDecl:
-	'operation' name = ValidID '(' (parameters += FullJvmFormalParameter (',' parameters += FullJvmFormalParameter)*)? ')'
-;
-
-OperationDef:
-	OperationDecl
-	body = XBlockExpression
+AspectImport:
+	'aspect' aspectRef = JvmTypeReference
 ;

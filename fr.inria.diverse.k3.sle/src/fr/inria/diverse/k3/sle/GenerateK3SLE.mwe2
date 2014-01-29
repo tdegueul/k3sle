@@ -18,6 +18,8 @@ Workflow {
     	// The following two lines can be removed, if Xbase is not used.
     	registerGeneratedEPackage = "org.eclipse.xtext.xbase.XbasePackage"
     	registerGenModelFile = "platform:/resource/org.eclipse.xtext.xbase/model/Xbase.genmodel"
+		registerGeneratedEPackage = "fr.inria.diverse.k3.sle.metamodel.k3sle.K3slePackage"
+		registerGenModelFile = "platform:/resource/fr.inria.diverse.k3.sle.metamodel/model/K3SLE.genmodel"
     }
     
     component = DirectoryCleaner {

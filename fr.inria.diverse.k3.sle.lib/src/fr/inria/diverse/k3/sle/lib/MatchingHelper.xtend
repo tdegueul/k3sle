@@ -25,7 +25,9 @@ class MatchingHelper
 
 	def boolean match() {
 		pkgB.EClassifiers.filter(EClass).forall[clsB |
-			pkgA.EClassifiers.filter(EClass).exists[clsA | clsA.match(clsB)]
+			pkgA.EClassifiers.filter(EClass).exists[clsA |
+				clsA.match(clsB)
+			]
 		]
 	}
 
@@ -149,16 +151,5 @@ class MatchingHelper
 		&&  (!(refA.EOpposite != null) || (refB.EOpposite != null && refA.EOpposite.name == refB.EOpposite.name))
 
 		return ret
-	}
-
-	PrintWriter debug
-	static final val DEBUG_FILE = "/tmp/k3sle.debug"
-
-	def boolean log(String s) {
-		debug = new PrintWriter(new BufferedWriter(new FileWriter(DEBUG_FILE, true)))
-		debug.write("[" + new java.util.Date() + "] MatchingHelper: " + s + "\n")
-		debug.close
-
-		true
 	}
 }

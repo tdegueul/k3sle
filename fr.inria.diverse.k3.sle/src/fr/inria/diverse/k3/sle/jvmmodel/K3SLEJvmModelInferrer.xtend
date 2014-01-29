@@ -1,14 +1,15 @@
 package fr.inria.diverse.k3.sle.jvmmodel
 
-import fr.inria.diverse.k3.sle.k3sle.ModelRoot
-import fr.inria.diverse.k3.sle.k3sle.MetamodelDecl
-import fr.inria.diverse.k3.sle.k3sle.ModelTypeDecl
-import fr.inria.diverse.k3.sle.k3sle.TransformationDecl
+import fr.inria.diverse.k3.sle.metamodel.k3sle.MegamodelRoot
+import fr.inria.diverse.k3.sle.metamodel.k3sle.Metamodel
+import fr.inria.diverse.k3.sle.metamodel.k3sle.ModelType
+import fr.inria.diverse.k3.sle.metamodel.k3sle.Transformation
 
-import fr.inria.diverse.k3.sle.lib.ModelUtils
+import fr.inria.diverse.k3.sle.metamodel.k3sle.K3sleFactory
+
 import fr.inria.diverse.k3.sle.lib.ModelTypeException
 import fr.inria.diverse.k3.sle.lib.GenericAdapter
-import fr.inria.diverse.k3.sle.lib.ModelType
+import fr.inria.diverse.k3.sle.lib.IModelType
 import fr.inria.diverse.k3.sle.lib.IFactory
 import fr.inria.diverse.k3.sle.lib.EObjectAdapter
 
@@ -22,6 +23,7 @@ import org.eclipse.emf.ecore.resource.Resource
 
 import org.eclipse.xtext.naming.IQualifiedNameProvider
 import org.eclipse.xtext.naming.QualifiedName
+import org.eclipse.xtext.common.types.JvmGenericType
 import org.eclipse.xtext.common.types.JvmTypeReference
 import org.eclipse.xtext.common.types.TypesFactory
 
@@ -30,8 +32,6 @@ import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
 
 import java.util.List
-import java.util.Map
-import java.util.HashMap
 
 import java.io.PrintWriter
 import java.io.FileWriter
@@ -47,37 +47,47 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	@Inject extension JvmTypesBuilder
 	@Inject extension IQualifiedNameProvider
 
-	Map<String, Pair<ModelTypeDecl, EPackage>> registeredMTs
-	Map<String, EPackage> effectivePkgs
+	MegamodelRoot mgmRoot
 	static final val DEBUG_FILE = "/tmp/k3sle.debug"
 
-	def dispatch void infer(ModelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
-		registeredMTs = new HashMap<String, Pair<ModelTypeDecl, EPackage>>
-		effectivePkgs = new HashMap<String, EPackage>
+	def dispatch void infer(MegamodelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		mgmRoot = root
 
-		if (!isPreIndexingPhase) {
-			root.elements.filter(ModelTypeDecl).forEach[infer(acceptor, isPreIndexingPhase)]
-			root.elements.filter(MetamodelDecl).forEach[infer(acceptor, isPreIndexingPhase)]
-			root.elements.filter(TransformationDecl).forEach[infer(acceptor, isPreIndexingPhase)]
+		if (!isPreIndexingPhase && root.isValid) {
+			// First pass: infer pkg for each structure, then build the typing hierarchy
+			root.elements.filter(Metamodel).forEach[buildPkg(acceptor)]
+			root.elements.filter(ModelType).forEach[buildPkg(acceptor)]
+			buildSubtypingHierarchy
+
+			// Second pass: generate code
+			root.elements.filter(ModelType).forEach[generateInterfaces(acceptor)]
+			root.elements.filter(Metamodel).forEach[generateAdapters(acceptor)]
+			root.elements.filter(Transformation).forEach[generateTransformation(acceptor, isPreIndexingPhase)]
 		}
 	}
 
-	def dispatch void infer(MetamodelDecl mm, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
-		// Basic checks before trying to infer an incomplete declaration
-		if (!mm.isComplete)
-			return ;
+	def dispatch buildPkg(Metamodel mm, IJvmDeclaredTypeAcceptor acceptor) {
+		val pkg = mm.inferredPkg
+		pkg.weaveAspects(mm)
 
-		// !!!
+		mm.pkg = pkg
+	}
+
+	def dispatch buildPkg(ModelType mt, IJvmDeclaredTypeAcceptor acceptor) {
+		mt.pkg = mt.extracted.pkg.copy
+	}
+
+	def void generateAdapters(Metamodel mm, IJvmDeclaredTypeAcceptor acceptor) {
 		val pkg = mm.pkg
 		val adapSwitch = new StringBuilder
 
-		pkg.weaveAspects(mm)
+		mgmRoot.elements.filter(ModelType)
+		.filter[mt | mt.pkg !== null && pkg !== null && pkg.subtypeOf(mt.pkg)]
+		.forEach[mt |
+			val superType = mt
+			val superPkg  = mt.pkg
 
-		registeredMTs
-		.filter[name, definition | pkg.subtypeOf(definition.value)]
-		.forEach[name, definition |
-			val superType = definition.key
-			val superPkg  = definition.value
+			mm.^implements += mt
 
 			acceptor.accept(mm.toClass(mm.adapterNameFor(superType, mm.name)))
 			.initializeLater[
@@ -176,7 +186,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					mm.aspects
 					.filter[cls.aspectizedBy(it)]
 					.forEach[asp |
-						asp.type.declaredOperations
+						(asp.aspectRef.type as JvmGenericType).declaredOperations
 						.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 						.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
 						.forEach[op |
@@ -203,23 +213,23 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 								body = '''
 									«IF other !== null»
-									return new «mm.adapterNameFor(superType, other.name)»(«asp.type.fullyQualifiedName».«op.simpleName»(adaptee«paramsList»)) ;
+									return new «mm.adapterNameFor(superType, other.name)»(«asp.aspectRef.type.fullyQualifiedName».«op.simpleName»(adaptee«paramsList»)) ;
 									«ELSE»
-									«IF returnType.simpleName != "void"»return «ENDIF»«asp.type.fullyQualifiedName».«op.simpleName»(adaptee«paramsList») ;
+									«IF returnType.simpleName != "void"»return «ENDIF»«asp.aspectRef.type.fullyQualifiedName».«op.simpleName»(adaptee«paramsList») ;
 									«ENDIF»
 								'''
 							]
 						]
 					]
 
-					if (mm.superMetamodel !== null) {
+					if (mm.inheritanceRelation?.superMetamodel !== null) {
 						// !!!
-						val superMM = mm.superMetamodel
+						val superMM = mm.inheritanceRelation.superMetamodel
 
 						superMM.aspects
 						.filter[cls.aspectizedBy(it)]
 						.forEach[asp |
-							asp.type.declaredOperations
+							(asp.aspectRef.type as JvmGenericType).declaredOperations
 							.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 							.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
 							.forEach[op |
@@ -247,12 +257,12 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 									body = '''
 										«IF other !== null»
 										return new «superMM.adapterNameFor(superType, other.name)»(
-											«asp.type.fullyQualifiedName».«op.simpleName»(
+											«asp.aspectRef.type.fullyQualifiedName».«op.simpleName»(
 												new «mm.adapterNameFor(superMM, cls.name)»(adaptee)«paramsList»
 											)
 										) ;
 										«ELSE»
-										«IF returnType.simpleName != "void"»return «ENDIF»«asp.type.fullyQualifiedName».«op.simpleName»(
+										«IF returnType.simpleName != "void"»return «ENDIF»«asp.aspectRef.type.fullyQualifiedName».«op.simpleName»(
 											new «mm.adapterNameFor(superMM, cls.name)»(adaptee)«paramsList»
 										) ;
 										«ENDIF»
@@ -282,7 +292,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				]
 			]
 
-			adapSwitch.append('''case "«name»": return (T) new «mm.adapterNameFor(superType, mm.name)»(res) ;''' + "\n")
+			adapSwitch.append('''case "«mt.fullyQualifiedName»": return (T) new «mm.adapterNameFor(superType, mm.name)»(res) ;''' + "\n")
 		]
 
 		acceptor.accept(mm.toClass(mm.fullyQualifiedName.normalize))
@@ -290,7 +300,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			val paramT = TypesFactory::eINSTANCE.createJvmTypeParameter => [
 				name = "T"
 				constraints += TypesFactory.eINSTANCE.createJvmUpperBound => [
-					typeReference = mm.newTypeRef(ModelType)
+					typeReference = mm.newTypeRef(IModelType)
 				]
 			]
 
@@ -316,8 +326,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			]
 		]
 
-		if (mm.superMetamodel !== null) {
-			val superMM = mm.superMetamodel
+		if (mm.inheritanceRelation?.superMetamodel !== null) {
+			val superMM = mm.inheritanceRelation.superMetamodel
 			val superPkg = superMM.pkg
 
 			superPkg.EClassifiers.filter(EClass).forEach[cls |
@@ -386,103 +396,90 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				]
 			]
 		}
-
-		registerEffectivePkg(mm, pkg)
 	}
 
-	def dispatch void infer(ModelTypeDecl mt, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
-		if (mt.extracted !== null && mt.extracted.isComplete) {
-			// !!!
-			val mm = mt.extracted
-			val uri = mm.allEcores.head.uri
-			val pkg = ModelUtils.loadPkg(uri)
-			val mtI = mt.toInterface(mt.fullyQualifiedName.normalize.toString, [])
+	def void generateInterfaces(ModelType mt, IJvmDeclaredTypeAcceptor acceptor) {
+		acceptor.accept(mt.toInterface(mt.fullyQualifiedName.normalize.toString, []))
+		.initializeLater[
+			superTypes += newTypeRef(IModelType)
 
-			pkg.weaveAspects(mm)
-
-			acceptor.accept(mtI)
-			.initializeLater[
-				superTypes += newTypeRef(ModelType)
-
-				members += mt.toMethod("getContents", newTypeRef(List, newTypeRef(Object)))[
-					abstract = true
-				]
-
-				members += mt.toMethod("getFactory", newTypeRef(mt.interfaceNameFor(pkg.factoryName)))[
-					abstract = true
-				]
+			members += mt.toMethod("getContents", newTypeRef(List, newTypeRef(Object)))[
+				abstract = true
 			]
 
-			pkg.EClassifiers.filter(EClass).forEach[cls |
-				acceptor.accept(cls.toInterface(mt.interfaceNameFor(cls.name), []))
-				.initializeLater[
-					cls.ESuperTypes.forEach[sup |
-						superTypes += newTypeRef(mt.interfaceNameFor(sup.name))
-					]
+			members += mt.toMethod("getFactory", newTypeRef(mt.interfaceNameFor(mt.pkg.factoryName)))[
+				abstract = true
+			]
+		]
 
-					cls.EAttributes.forEach[attr |
-						val baseType =
-							if (attr.EAttributeType?.instanceClassName !== null)
-								newTypeRef(attr.EAttributeType.instanceClassName)
-							else if (attr.EAttributeType !== null && attr.EAttributeType instanceof EEnum)
-								newTypeRef(attr.EAttributeType.name)
-							else
-								newTypeRef(mt.interfaceNameFor(attr.EType.name))
+		mt.pkg.EClassifiers.filter(EClass).forEach[cls |
+			acceptor.accept(cls.toInterface(mt.interfaceNameFor(cls.name), []))
+			.initializeLater[
+				cls.ESuperTypes.forEach[sup |
+					superTypes += newTypeRef(mt.interfaceNameFor(sup.name))
+				]
 
-						val returnType = if (attr.many)	newTypeRef(List, baseType) else	baseType
+				cls.EAttributes.forEach[attr |
+					val baseType =
+						if (attr.EAttributeType?.instanceClassName !== null)
+							newTypeRef(attr.EAttributeType.instanceClassName)
+						else if (attr.EAttributeType !== null && attr.EAttributeType instanceof EEnum)
+							newTypeRef(attr.EAttributeType.name)
+						else
+							newTypeRef(mt.interfaceNameFor(attr.EType.name))
 
-						members += attr.toGetterSignature(attr.name, returnType)
+					val returnType = if (attr.many)	newTypeRef(List, baseType) else	baseType
 
-						if (!attr.many)
-							members += attr.toSetterSignature(attr.name, returnType)
-					]
+					members += attr.toGetterSignature(attr.name, returnType)
 
-					cls.EReferences.forEach[ref |
-						if (ref.many) {
-							members += ref.toGetterSignature(ref.name, newTypeRef(typeof(List), newTypeRef(mt.interfaceNameFor(ref.EReferenceType.name))))
-						} else {
-							members += ref.toGetterSignature(ref.name, ref.newTypeRef(ref.EReferenceType.name))
-							members += ref.toSetterSignature(ref.name, ref.newTypeRef(ref.EReferenceType.name))
-						}
-					]
+					if (!attr.many)
+						members += attr.toSetterSignature(attr.name, returnType)
+				]
 
-					mm.aspects
-					.filter[cls.aspectizedBy(it)]
-					.forEach[asp |
-						asp.type.declaredOperations
-						.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
-						.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
-						.forEach[op |
-							members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
-								val other = pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
+				cls.EReferences.forEach[ref |
+					if (ref.many) {
+						members += ref.toGetterSignature(ref.name, newTypeRef(typeof(List), newTypeRef(mt.interfaceNameFor(ref.EReferenceType.name))))
+					} else {
+						members += ref.toGetterSignature(ref.name, ref.newTypeRef(ref.EReferenceType.name))
+						members += ref.toSetterSignature(ref.name, ref.newTypeRef(ref.EReferenceType.name))
+					}
+				]
 
-								if (other !== null)
-									returnType = newTypeRef(mt.interfaceNameFor(other.name))
+				mt.extracted.aspects
+				.filter[cls.aspectizedBy(it)]
+				.forEach[asp |
+					(asp.aspectRef.type as JvmGenericType).declaredOperations
+					.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+					.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
+					.forEach[op |
+						members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
+							val other = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
 
-								op.parameters.forEach[p, i |
-									if (i > 0) {
-										val otherr = pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == p.parameterType.simpleName]
+							if (other !== null)
+								returnType = newTypeRef(mt.interfaceNameFor(other.name))
 
-										if (otherr !== null)
-											parameters += mt.toParameter(p.simpleName, newTypeRef(mt.interfaceNameFor(otherr.name)))
-										else
-											parameters += mt.toParameter(p.simpleName, p.parameterType)
-									}
-								]
+							op.parameters.forEach[p, i |
+								if (i > 0) {
+									val otherr = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == p.parameterType.simpleName]
 
-								^abstract = true
+									if (otherr !== null)
+										parameters += mt.toParameter(p.simpleName, newTypeRef(mt.interfaceNameFor(otherr.name)))
+									else
+										parameters += mt.toParameter(p.simpleName, p.parameterType)
+								}
 							]
+
+							^abstract = true
 						]
 					]
 				]
 			]
+		]
 
-			pkg.extractFactoryInterface(mt.fullyQualifiedName, acceptor)
-			registerMT(mt, pkg)
-		}
+		mt.pkg.extractFactoryInterface(mt.fullyQualifiedName, acceptor)
 	}
 
-	def dispatch void infer(TransformationDecl transfo, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+	def void generateTransformation(Transformation transfo, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		acceptor.accept(transfo.toClass(transfo.fullyQualifiedName))
 		.initializeLater[
 			// !!!
@@ -499,10 +496,10 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					parameters += transfo.toParameter("args", transfo.newTypeRef(typeof(String)).addArrayTypeDimension)
 
 					body = '''
-						«FOR pkg : effectivePkgs.values»
+						«FOR mm : mgmRoot.elements.filter(Metamodel).filter[pkg !== null]»
 						org.eclipse.emf.ecore.EPackage.Registry.INSTANCE.put(
-							«pkg.fullyQualifiedName.toString».«pkg.fullyQualifiedName.toString.toFirstUpper»Package.eNS_URI,
-							«pkg.fullyQualifiedName.toString».«pkg.fullyQualifiedName.toString.toFirstUpper»Package.eINSTANCE
+							«mm.pkg.fullyQualifiedName.toString».«mm.pkg.fullyQualifiedName.toString.toFirstUpper»Package.eNS_URI,
+							«mm.pkg.fullyQualifiedName.toString».«mm.pkg.fullyQualifiedName.toString.toFirstUpper»Package.eINSTANCE
 						) ;
 						«ENDFOR»
 						org.eclipse.emf.ecore.resource.Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put(
@@ -518,16 +515,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		]
 	}
 
-	def registerMT(ModelTypeDecl mt, EPackage pkg) {
-		if (!registeredMTs.containsKey(mt.fullyQualifiedName.toString))
-			registeredMTs.put(mt.fullyQualifiedName.toString, mt -> pkg)
-	}
-
-	def registerEffectivePkg(MetamodelDecl mm, EPackage pkg) {
-		if (!effectivePkgs.containsKey(mm.fullyQualifiedName.toString))
-			effectivePkgs.put(mm.fullyQualifiedName.toString, pkg)
-	}
-
 	def extractFactoryInterface(EPackage pkg, QualifiedName targetPkg, IJvmDeclaredTypeAcceptor acceptor) {
 		acceptor.accept(pkg.toInterface(targetPkg.append(pkg.factoryName).normalize.toString, []))
 		.initializeLater[
@@ -537,6 +524,21 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				members += cls.toMethod("create" + cls.name, newTypeRef(targetPkg.append(cls.name).normalize.toString), [
 					abstract = true
 				])
+			]
+		]
+	}
+
+	def buildSubtypingHierarchy() {
+		mgmRoot.elements.filter(ModelType)
+		.forEach[mt1 |
+			mgmRoot.elements.filter(ModelType)
+			.filter[mt2 | mt2 !== null && mt1 !== null && mt2 !== mt1]
+			.filter[mt2 | mt1.pkg.subtypeOf(mt2.pkg)]
+			.forEach[mt2 |
+				mt1.subtypingRelations += K3sleFactory.eINSTANCE.createSubtyping => [
+					subType = mt1
+					superType = mt2
+				]
 			]
 		]
 	}
@@ -563,19 +565,19 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		return pkg.EClassifiers.filter(EClass).head
 	}
 
-	def adapterNameFor(MetamodelDecl mm, ModelTypeDecl mt, String cls) {
+	def adapterNameFor(Metamodel mm, ModelType mt, String cls) {
 		mm.fullyQualifiedName.append("adapters").append(mt.fullyQualifiedName.lastSegment).append(cls + "Adapter").normalize.toString
 	}
 
-	def adapterNameFor(MetamodelDecl mm, MetamodelDecl superMM, String cls) {
+	def adapterNameFor(Metamodel mm, Metamodel superMM, String cls) {
 		mm.fullyQualifiedName.append("adapters").append(superMM.name).append(cls + "Adapter").normalize.toString
 	}
 
-	def factoryNameFor(MetamodelDecl mm, ModelTypeDecl mt, String cls) {
+	def factoryNameFor(Metamodel mm, ModelType mt, String cls) {
 		mm.fullyQualifiedName.append("adapters").append(mt.fullyQualifiedName.lastSegment).append(cls + "AdapterFactory").normalize.toString
 	}
 
-	def interfaceNameFor(ModelTypeDecl mt, String cls) {
+	def interfaceNameFor(ModelType mt, String cls) {
 		mt.fullyQualifiedName.append(cls).normalize.toString
 	}
 
