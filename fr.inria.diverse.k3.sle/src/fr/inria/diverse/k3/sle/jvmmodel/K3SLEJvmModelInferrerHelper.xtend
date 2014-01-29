@@ -127,7 +127,7 @@ class K3SLEJvmModelInferrerHelper
 			return pkg
 		}
 	}
-	
+
 	static def dispatch getInferredPkg(ModelType mt) {
 		if (mt.ecore === null && mt.extracted !== null)
 			return mt.extracted.pkg.copy
@@ -273,14 +273,14 @@ class K3SLEJvmModelInferrerHelper
 
 		return false
 	}
-	
+
 	static def serializeAs(MegamodelRoot root, String uri) {
 		Resource.Factory.Registry.INSTANCE.extensionToFactoryMap.put("*", new XMIResourceFactoryImpl)
-		
+
 		val rs = new ResourceSetImpl
 		val res = rs.createResource(URI.createURI(uri))
 		res.contents += root
-		
+
 		try {
 			res.save(null)
 		} catch (IOException e) {

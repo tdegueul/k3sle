@@ -64,7 +64,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			root.elements.filter(ModelType).forEach[generateInterfaces(acceptor)]
 			root.elements.filter(Metamodel).forEach[generateAdapters(acceptor)]
 			root.elements.filter(Transformation).forEach[generateTransformation(acceptor, isPreIndexingPhase)]
-			
+
 			//root.serializeAs(MODEL_FILE)
 		}
 	}
@@ -458,21 +458,21 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 						.forEach[op |
 							members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
 								val other = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
-	
+
 								if (other !== null)
 									returnType = newTypeRef(mt.interfaceNameFor(other.name))
-	
+
 								op.parameters.forEach[p, i |
 									if (i > 0) {
 										val otherr = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == p.parameterType.simpleName]
-	
+
 										if (otherr !== null)
 											parameters += mt.toParameter(p.simpleName, newTypeRef(mt.interfaceNameFor(otherr.name)))
 										else
 											parameters += mt.toParameter(p.simpleName, p.parameterType)
 									}
 								]
-	
+
 								^abstract = true
 							]
 						]
@@ -488,7 +488,9 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		acceptor.accept(transfo.toClass(transfo.fullyQualifiedName))
 		.initializeLater[
 			// !!!
-			members += transfo.toMethod("call", transfo.newTypeRef(Void::TYPE))[
+			val returnType = transfo.returnTypeRef ?: transfo.newTypeRef(Void::TYPE)
+
+			members += transfo.toMethod("call", returnType)[
 				transfo.parameters.forEach[p |
 					parameters += transfo.toParameter(p.name, p.parameterType)
 				]
