@@ -1,6 +1,7 @@
 package fr.inria.diverse.k3.sle.jvmmodel
 
 import org.eclipse.emf.common.util.BasicMonitor
+import org.eclipse.emf.common.util.URI
 
 import org.eclipse.emf.ecore.EAttribute
 import org.eclipse.emf.ecore.EClass
@@ -9,7 +10,9 @@ import org.eclipse.emf.ecore.EReference
 import org.eclipse.emf.ecore.EcoreFactory
 import org.eclipse.emf.ecore.EcorePackage
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl
+import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl
 import org.eclipse.emf.ecore.util.EcoreUtil
+import org.eclipse.emf.ecore.resource.Resource
 
 import org.eclipse.emf.codegen.ecore.genmodel.GenModelFactory
 import org.eclipse.emf.codegen.ecore.genmodel.GenJDKLevel
@@ -104,7 +107,7 @@ class K3SLEJvmModelInferrerHelper
 			mm.ecore.uri
 	}
 
-	static def getInferredPkg(Metamodel mm) {
+	static def dispatch getInferredPkg(Metamodel mm) {
 		if (mm.ecore === null && mm.inheritanceRelation?.superMetamodel !== null)
 		{
 			val superMM = mm.inheritanceRelation?.superMetamodel
@@ -123,6 +126,13 @@ class K3SLEJvmModelInferrerHelper
 
 			return pkg
 		}
+	}
+	
+	static def dispatch getInferredPkg(ModelType mt) {
+		if (mt.ecore === null && mt.extracted !== null)
+			return mt.extracted.pkg.copy
+		else if (mt.ecore !== null && mt.extracted === null)
+			return ModelUtils.loadPkg(mt.ecore.uri)
 	}
 
 	static def copy(EPackage pkg) {
@@ -200,6 +210,7 @@ class K3SLEJvmModelInferrerHelper
 				(asp.aspectRef.type as JvmGenericType).declaredOperations
 				.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
 				.forEach[op |
+					// Create an attribute is these are getters/setters
 					aspectized.EOperations.add(
 						EcoreFactory.eINSTANCE.createEOperation => [
 							val retType = pkg.getClassifierFor(op.returnType.simpleName)
@@ -234,7 +245,8 @@ class K3SLEJvmModelInferrerHelper
 	}
 
 	static def dispatch boolean isValid(ModelType mt) {
-		(mt.extracted !== null && mt.extracted.isValid)
+		(mt.extracted === null && mt.ecore?.uri !== null)
+		|| (mt.extracted !== null && mt.extracted.isValid)
 	}
 
 	static def dispatch boolean isValid(Transformation t) {
@@ -260,5 +272,19 @@ class K3SLEJvmModelInferrerHelper
 		}
 
 		return false
+	}
+	
+	static def serializeAs(MegamodelRoot root, String uri) {
+		Resource.Factory.Registry.INSTANCE.extensionToFactoryMap.put("*", new XMIResourceFactoryImpl)
+		
+		val rs = new ResourceSetImpl
+		val res = rs.createResource(URI.createURI(uri))
+		res.contents += root
+		
+		try {
+			res.save(null)
+		} catch (IOException e) {
+			e.printStackTrace
+		}
 	}
 }

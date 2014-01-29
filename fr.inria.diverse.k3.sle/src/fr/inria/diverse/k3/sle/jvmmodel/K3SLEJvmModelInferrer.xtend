@@ -49,6 +49,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 	MegamodelRoot mgmRoot
 	static final val DEBUG_FILE = "/tmp/k3sle.debug"
+	static final val MODEL_FILE = "platform:/resource/Output/model/output.xmi"
 
 	def dispatch void infer(MegamodelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		mgmRoot = root
@@ -63,6 +64,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 			root.elements.filter(ModelType).forEach[generateInterfaces(acceptor)]
 			root.elements.filter(Metamodel).forEach[generateAdapters(acceptor)]
 			root.elements.filter(Transformation).forEach[generateTransformation(acceptor, isPreIndexingPhase)]
+			
+			//root.serializeAs(MODEL_FILE)
 		}
 	}
 
@@ -74,7 +77,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	}
 
 	def dispatch buildPkg(ModelType mt, IJvmDeclaredTypeAcceptor acceptor) {
-		mt.pkg = mt.extracted.pkg.copy
+		mt.pkg = mt.inferredPkg
 	}
 
 	def void generateAdapters(Metamodel mm, IJvmDeclaredTypeAcceptor acceptor) {
@@ -82,7 +85,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		val adapSwitch = new StringBuilder
 
 		mgmRoot.elements.filter(ModelType)
-		.filter[mt | mt.pkg !== null && pkg !== null && pkg.subtypeOf(mt.pkg)]
+		.filter[mt | pkg.subtypeOf(mt.pkg)]
 		.forEach[mt |
 			val superType = mt
 			val superPkg  = mt.pkg
@@ -445,34 +448,36 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 					}
 				]
 
-				mt.extracted.aspects
-				.filter[cls.aspectizedBy(it)]
-				.forEach[asp |
-					(asp.aspectRef.type as JvmGenericType).declaredOperations
-					.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
-					.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
-					.forEach[op |
-						members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
-							val other = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
-
-							if (other !== null)
-								returnType = newTypeRef(mt.interfaceNameFor(other.name))
-
-							op.parameters.forEach[p, i |
-								if (i > 0) {
-									val otherr = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == p.parameterType.simpleName]
-
-									if (otherr !== null)
-										parameters += mt.toParameter(p.simpleName, newTypeRef(mt.interfaceNameFor(otherr.name)))
-									else
-										parameters += mt.toParameter(p.simpleName, p.parameterType)
-								}
+				if (mt.extracted !== null) {
+					mt.extracted.aspects
+					.filter[cls.aspectizedBy(it)]
+					.forEach[asp |
+						(asp.aspectRef.type as JvmGenericType).declaredOperations
+						.filter[op | !op.simpleName.startsWith("priv") && !op.simpleName.startsWith("super_")]
+						.filter[op | !members.exists[opp | opp.simpleName == op.simpleName]]
+						.forEach[op |
+							members += mt.toMethod(op.simpleName, newTypeRef(op.returnType.qualifiedName))[
+								val other = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == op.returnType.simpleName]
+	
+								if (other !== null)
+									returnType = newTypeRef(mt.interfaceNameFor(other.name))
+	
+								op.parameters.forEach[p, i |
+									if (i > 0) {
+										val otherr = mt.pkg.EClassifiers.filter(EClass).findFirst[ccls | ccls.name == p.parameterType.simpleName]
+	
+										if (otherr !== null)
+											parameters += mt.toParameter(p.simpleName, newTypeRef(mt.interfaceNameFor(otherr.name)))
+										else
+											parameters += mt.toParameter(p.simpleName, p.parameterType)
+									}
+								]
+	
+								^abstract = true
 							]
-
-							^abstract = true
 						]
 					]
-				]
+				}
 			]
 		]
 
@@ -532,7 +537,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		mgmRoot.elements.filter(ModelType)
 		.forEach[mt1 |
 			mgmRoot.elements.filter(ModelType)
-			.filter[mt2 | mt2 !== null && mt1 !== null && mt2 !== mt1]
+			.filter[mt2 | mt2 !== mt1]
 			.filter[mt2 | mt1.pkg.subtypeOf(mt2.pkg)]
 			.forEach[mt2 |
 				mt1.subtypingRelations += K3sleFactory.eINSTANCE.createSubtyping => [
