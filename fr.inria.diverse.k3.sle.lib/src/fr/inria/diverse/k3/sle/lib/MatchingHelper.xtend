@@ -9,14 +9,17 @@ import org.eclipse.emf.ecore.EParameter
 import org.eclipse.emf.ecore.EReference
 
 import java.util.List
-import java.io.PrintWriter
-import java.io.FileWriter
-import java.io.BufferedWriter
+import java.util.Map
+import java.util.HashMap
+import java.util.Stack
 
 class MatchingHelper
 {
 	EPackage pkgA
 	EPackage pkgB
+
+	Map<Pair<String, String>, Boolean> matches
+	Stack<String> currentMatching
 
 	new(EPackage a, EPackage b) {
 		pkgA = a
@@ -24,6 +27,9 @@ class MatchingHelper
 	}
 
 	def boolean match() {
+		matches = new HashMap<Pair<String, String>, Boolean>
+		currentMatching = new Stack<String>
+
 		pkgB.EClassifiers.filter(EClass).forall[clsB |
 			pkgA.EClassifiers.filter(EClass).exists[clsA |
 				clsA.match(clsB)
@@ -32,19 +38,29 @@ class MatchingHelper
 	}
 
 	def boolean match(EClass clsA, EClass clsB) {
-		val ret =
-		    clsA.name == clsB.name
-		&&  clsB.EOperations.forall[opB |
-				clsA.EOperations.exists[opA | opA.match(opB)]
-			]
-		&&  clsB.EAttributes.forall[attrB |
-				clsA.EAttributes.exists[attrA | attrA.match(attrB)]
-			]
-		&&  clsB.EReferences.forall[refB |
-				clsA.EReferences.exists[refA | refA.match(refB)]
-			]
+		if (matches.containsKey(clsA.name -> clsB.name))
+			return matches.get(clsA.name -> clsB.name)
+		else if (!currentMatching.contains(clsB.name)) {
+				currentMatching.push(clsB.name)
 
-		return ret
+				val ret =
+				    clsA.name == clsB.name
+				&&  clsB.EOperations.forall[opB |
+						clsA.EOperations.exists[opA | opA.match(opB)]
+					]
+				&&  clsB.EAttributes.forall[attrB |
+						clsA.EAttributes.exists[attrA | attrA.match(attrB)]
+					]
+				&&  clsB.EReferences.forall[refB |
+						clsA.EReferences.exists[refA | refA.match(refB)]
+					]
+
+				currentMatching.pop
+				matches.put(clsA.name -> clsB.name, ret)
+
+				return ret
+		} else
+			return true
 	}
 
 	def boolean match(EOperation opA, EOperation opB) {
@@ -58,7 +74,7 @@ class MatchingHelper
 					&& pkgB.EClassifiers.contains(opB.EType)
 					&& (opA.EType as EClass).match(opB.EType as EClass)
 				) || (
-					opA.EType == null && opB.EType == null
+					opA.EType === null && opB.EType === null
 				) || (
 					   opA.EType instanceof EClass
 					&& (opA.EType as EClass).EAllSuperTypes.contains(opB.EType)
@@ -148,7 +164,7 @@ class MatchingHelper
 		&&  (!refA.ordered || refB.ordered)
 		&&  (refA.lowerBound == refB.lowerBound)
 		&&  (refA.upperBound == refB.upperBound)
-		&&  (!(refA.EOpposite != null) || (refB.EOpposite != null && refA.EOpposite.name == refB.EOpposite.name))
+		&&  (!(refA.EOpposite !== null) || (refB.EOpposite !== null && refA.EOpposite.name == refB.EOpposite.name))
 
 		return ret
 	}
