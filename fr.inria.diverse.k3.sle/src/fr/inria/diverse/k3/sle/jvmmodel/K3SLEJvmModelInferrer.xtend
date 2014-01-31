@@ -54,16 +54,16 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	def dispatch void infer(MegamodelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		mgmRoot = root
 
-		if (!isPreIndexingPhase && root.isValid) {
+		if (!isPreIndexingPhase) {
 			// First pass: infer pkg for each structure, then build the typing hierarchy
-			root.elements.filter(Metamodel).forEach[buildPkg(acceptor)]
-			root.elements.filter(ModelType).forEach[buildPkg(acceptor)]
+			root.elements.filter(Metamodel).filter[isValid].forEach[buildPkg(acceptor)]
+			root.elements.filter(ModelType).filter[isValid].forEach[buildPkg(acceptor)]
 			buildSubtypingHierarchy
 
 			// Second pass: generate code
-			root.elements.filter(ModelType).forEach[generateInterfaces(acceptor)]
-			root.elements.filter(Metamodel).forEach[generateAdapters(acceptor)]
-			root.elements.filter(Transformation).forEach[generateTransformation(acceptor, isPreIndexingPhase)]
+			root.elements.filter(ModelType).filter[isValid].forEach[generateInterfaces(acceptor)]
+			root.elements.filter(Metamodel).filter[isValid].forEach[generateAdapters(acceptor)]
+			root.elements.filter(Transformation).filter[isValid].forEach[generateTransformation(acceptor, isPreIndexingPhase)]
 
 			//root.serializeAs(MODEL_FILE)
 		}
