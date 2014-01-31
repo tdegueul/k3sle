@@ -1,5 +1,8 @@
 package fr.inria.diverse.k3.sle.jvmmodel
 
+import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.Path
+
 import org.eclipse.emf.common.util.BasicMonitor
 import org.eclipse.emf.common.util.URI
 
@@ -102,7 +105,7 @@ class K3SLEJvmModelInferrerHelper
 
 	static def getUri(Metamodel mm) {
 		if (mm?.ecore === null && mm?.inheritanceRelation?.superMetamodel !== null)
-			'''platform:/resource/«mm.name»Generated/model/«mm.name».ecore'''
+			'''platform:/resource/«mm.generationFolder»/model/«mm.name».ecore'''
 		else if (mm?.ecore !== null)
 			mm.ecore.uri
 	}
@@ -114,7 +117,7 @@ class K3SLEJvmModelInferrerHelper
 			val superPkg = ModelUtils.loadPkg(superMM.ecore.uri)
 			val pkg = superPkg.copy(mm.name)
 			val uri = mm.uri
-			val genModelUri = '''platform:/resource/«mm.name»Generated/model/«mm.name».genmodel'''
+			val genModelUri = '''platform:/resource/«mm.generationFolder»/model/«mm.name».genmodel'''
 
 			pkg.createEcore(uri.toString)
 			pkg.createGenModel(mm, uri.toString, genModelUri)
@@ -168,7 +171,7 @@ class K3SLEJvmModelInferrerHelper
 		val genModel = genModelFact.createGenModel
 
 		genModel.complianceLevel = GenJDKLevel.JDK70_LITERAL
-		genModel.modelDirectory = '''/«mm.name»Generated/src'''
+		genModel.modelDirectory = '''/«mm.project.name»/src-gen/'''
 		genModel.foreignModel.add(ecoreLocation)
 		genModel.modelName = mm.name
 		genModel.initialize(Collections.singleton(pkg))
@@ -199,6 +202,15 @@ class K3SLEJvmModelInferrerHelper
 			GenBaseGeneratorAdapter.MODEL_PROJECT_TYPE,
 			new BasicMonitor.Printing(System.out)
 		)
+	}
+
+	static def getGenerationFolder(Metamodel mm) {
+		return '''/«mm.project.name»/generated/«mm.name»'''
+	}
+
+	static def getProject(Metamodel mm) {
+		val platformString = mm.eResource.URI.toPlatformString(true)
+		return ResourcesPlugin.workspace.root.getFile(new Path(platformString)).project
 	}
 
 	// TODO: fixme
