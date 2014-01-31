@@ -104,11 +104,16 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 				members += mm.toMethod("getContents", newTypeRef(List, newTypeRef(Object)))[
 					// !!!
+					documentation = '''FIXME'''
 					body = '''
 						java.util.List<java.lang.Object> ret = new java.util.ArrayList<java.lang.Object>() ;
 						for (org.eclipse.emf.ecore.EObject o : adaptee.getContents()) {
-							«pkg.root.fullyQualifiedName.toString» wrap = («pkg.root.fullyQualifiedName.toString») o ;
-							ret.add(new «mm.adapterNameFor(superType, pkg.root.name)»(wrap)) ;
+							«FOR r : pkg.EClassifiers.filter(EClass)»
+							if (o instanceof «r.fullyQualifiedName.toString») {
+								«r.fullyQualifiedName.toString» wrap = («r.fullyQualifiedName.toString») o ;
+								ret.add(new «mm.adapterNameFor(superType, r.name)»(wrap)) ;
+							} else
+							«ENDFOR» {}
 						}
 						return ret ;
 					'''
@@ -565,11 +570,6 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		s.removeExistingBody
 
 		return s
-	}
-
-	// FIXME
-	def getRoot(EPackage pkg) {
-		return pkg.EClassifiers.filter(EClass).head
 	}
 
 	def adapterNameFor(Metamodel mm, ModelType mt, String cls) {
