@@ -56,8 +56,8 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 		if (!isPreIndexingPhase) {
 			// First pass: infer pkg for each structure, then build the typing hierarchy
-			root.elements.filter(Metamodel).filter[isValid].forEach[buildPkg(acceptor)]
-			root.elements.filter(ModelType).filter[isValid].forEach[buildPkg(acceptor)]
+			root.elements.filter(Metamodel).filter[isValid].forEach[buildPkg]
+			root.elements.filter(ModelType).filter[isValid].forEach[buildPkg]
 			buildSubtypingHierarchy
 
 			// Second pass: generate code
@@ -69,14 +69,14 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 		}
 	}
 
-	def dispatch buildPkg(Metamodel mm, IJvmDeclaredTypeAcceptor acceptor) {
+	def dispatch buildPkg(Metamodel mm) {
 		val pkg = mm.inferredPkg
 		pkg.weaveAspects(mm)
 
 		mm.pkg = pkg
 	}
 
-	def dispatch buildPkg(ModelType mt, IJvmDeclaredTypeAcceptor acceptor) {
+	def dispatch buildPkg(ModelType mt) {
 		mt.pkg = mt.inferredPkg
 	}
 
