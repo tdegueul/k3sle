@@ -11,6 +11,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EOperation
 import org.eclipse.emf.common.notify.Notification
 import java.lang.reflect.InvocationTargetException
+import java.util.ListIterator
 
 abstract class GenericAdapter<E> {
 	protected E adaptee
@@ -118,11 +119,13 @@ class ListAdapter<E, F> implements List<E>
 	}
 
 	override addAll(Collection<? extends E> c) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+		c.forEach[adaptee.add(decapsulate(it))]
+		true
 	}
 
 	override addAll(int index, Collection<? extends E> c) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+		c.forEach[it, i | adaptee.add(index + i, decapsulate(it))]
+		true
 	}
 
 	override clear() {
@@ -150,7 +153,7 @@ class ListAdapter<E, F> implements List<E>
 	}
 
 	override iterator() {
-		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(adapType))
+		Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(adapType))
 	}
 
 	override lastIndexOf(Object o) {
@@ -158,11 +161,11 @@ class ListAdapter<E, F> implements List<E>
 	}
 
 	override listIterator() {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+		Iterators.transform(adaptee.listIterator, new IteratorTranslator<F, E>(adapType)) as ListIterator<E>
 	}
 
 	override listIterator(int index) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+		Iterators.transform(adaptee.listIterator(index), new IteratorTranslator<F, E>(adapType)) as ListIterator<E>
 	}
 
 	override remove(Object o) {
@@ -215,98 +218,6 @@ class EListAdapter<E, F> extends ListAdapter<E, F> implements EList<E>
 		super(a, type)
 		adaptee = a
 		adapType = type
-	}
-
-	override add(E e) {
-		adaptee.add(decapsulate(e))
-	}
-
-	override add(int index, E element) {
-		adaptee.add(index, decapsulate(element))
-	}
-
-	override addAll(Collection<? extends E> c) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
-	}
-
-	override addAll(int index, Collection<? extends E> c) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
-	}
-
-	override clear() {
-		adaptee.clear
-	}
-
-	override contains(Object o) {
-		adaptee.contains(o)
-	}
-
-	override containsAll(Collection<?> c) {
-		adaptee.containsAll(c)
-	}
-
-	override get(int index) {
-		adapType.declaredConstructors.head.newInstance(adaptee.get(index)) as E
-	}
-
-	override indexOf(Object o) {
-		adaptee.indexOf(o)
-	}
-
-	override isEmpty() {
-		adaptee.isEmpty
-	}
-
-	override iterator() {
-		return Iterators.transform(adaptee.iterator, new IteratorTranslator<F, E>(adapType))
-	}
-
-	override lastIndexOf(Object o) {
-		adaptee.lastIndexOf(decapsulate(o))
-	}
-
-	override listIterator() {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
-	}
-
-	override listIterator(int index) {
-		throw new UnsupportedOperationException("TODO: auto-generated method stub")
-	}
-
-	override remove(Object o) {
-		adaptee.remove(decapsulate(o))
-	}
-
-	override remove(int index) {
-		adapType.declaredConstructors.head.newInstance(adaptee.remove(index)) as E
-	}
-
-	override removeAll(Collection<?> c) {
-		adaptee.removeAll(c)
-	}
-
-	override retainAll(Collection<?> c) {
-		adaptee.retainAll(c)
-	}
-
-	override set(int index, E element) {
-		adapType.declaredConstructors.head.newInstance(adaptee.set(index, decapsulate(element))) as E
-	}
-
-	override size() {
-		adaptee.size
-	}
-
-	override subList(int fromIndex, int toIndex) {
-		new ListAdapter<E, F>(adaptee.subList(fromIndex, toIndex), adapType)
-	}
-
-	override toArray() {
-		adaptee.toArray
-	}
-
-	override <T> toArray(T[] a) {
-		adaptee.toArray(a)
 	}
 
 	override move(int newPosition, E object) {
