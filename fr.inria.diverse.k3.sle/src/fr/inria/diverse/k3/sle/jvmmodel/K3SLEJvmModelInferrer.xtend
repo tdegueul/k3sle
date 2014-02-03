@@ -542,10 +542,11 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 	def buildSubtypingHierarchy() {
 		mgmRoot.elements.filter(ModelType)
+		.filterNull
 		.forEach[mt1 |
 			mgmRoot.elements.filter(ModelType)
-			.filter[mt2 | mt2 !== mt1]
-			.filter[mt2 | mt1.pkg.subtypeOf(mt2.pkg)]
+			.filterNull
+			.filter[mt2 | mt2 !== mt1 && mt1.pkg.subtypeOf(mt2.pkg)]
 			.forEach[mt2 |
 				mt1.subtypingRelations += K3sleFactory.eINSTANCE.createSubtyping => [
 					subType = mt1
