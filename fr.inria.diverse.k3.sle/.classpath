@@ -6,5 +6,6 @@
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/fr.inria.diverse.k3.sle.lib"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/fr.inria.diverse.k3.sle.metamodel"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
