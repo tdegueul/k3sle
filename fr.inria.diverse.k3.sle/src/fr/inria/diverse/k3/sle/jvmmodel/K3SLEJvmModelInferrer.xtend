@@ -30,6 +30,7 @@ import org.eclipse.xtext.common.types.TypesFactory
 import org.eclipse.xtext.xbase.jvmmodel.AbstractModelInferrer
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
+import org.eclipse.xtext.xbase.XExpression
 
 import java.util.List
 
@@ -499,7 +500,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				transfo.parameters.forEach[p |
 					parameters += transfo.toParameter(p.name, p.parameterType)
 				]
-				body = transfo.body
+				body = transfo.body as XExpression
 				static = true
 			]
 

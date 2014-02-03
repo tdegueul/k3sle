@@ -30,6 +30,9 @@ class MatchingHelper
 		matches = new HashMap<Pair<String, String>, Boolean>
 		currentMatching = new Stack<String>
 
+		if (pkgA == null || pkgB == null)
+			return false
+
 		pkgB.EClassifiers.filter(EClass).forall[clsB |
 			pkgA.EClassifiers.filter(EClass).exists[clsA |
 				clsA.match(clsB)

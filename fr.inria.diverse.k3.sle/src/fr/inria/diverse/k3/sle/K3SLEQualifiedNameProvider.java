@@ -25,13 +25,14 @@ class K3SLEQualifiedNameProvider extends XbaseQualifiedNameProvider
 		if (obj instanceof Element) {
 			MegamodelRoot root = (MegamodelRoot) obj.eContainer() ;
 			PackageDecl pkg = root.getPackage() ;
-			String type = "" ;
+			//String type = "" ;
 
-			if (obj instanceof Metamodel) type = "metamodels";
-			else if (obj instanceof ModelType) type = "modeltypes";
-			else if (obj instanceof Transformation) type = "transformations";
+			//if (obj instanceof Metamodel) type = "metamodels";
+			//else if (obj instanceof ModelType) type = "modeltypes";
+			//else if (obj instanceof Transformation) type = "transformations";
 
-			final String fqn = String.format("%s.%s.%s", pkg.getName(), type, ((Element) obj).getName()) ;
+			//final String fqn = String.format("%s.%s.%s", pkg.getName(), type, ((Element) obj).getName()) ;
+			final String fqn = String.format("%s.%s", pkg.getName(), ((Element) obj).getName()) ;
 
 			if (fqn == null)
 				return null ;
