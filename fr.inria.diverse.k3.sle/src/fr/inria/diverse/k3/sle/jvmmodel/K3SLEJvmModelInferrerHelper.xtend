@@ -50,6 +50,9 @@ class K3SLEJvmModelInferrerHelper
 	}
 
 	static def boolean subtypeOf(EPackage pkgA, EPackage pkgB) {
+		if (pkgA === null  || pkgB === null)
+			return false
+
 		new MatchingHelper(pkgA, pkgB).match
 	}
 
