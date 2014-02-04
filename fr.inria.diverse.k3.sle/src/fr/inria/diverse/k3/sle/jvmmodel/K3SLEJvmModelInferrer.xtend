@@ -34,11 +34,6 @@ import org.eclipse.xtext.xbase.XExpression
 
 import java.util.List
 
-import java.io.PrintWriter
-import java.io.FileWriter
-import java.io.BufferedWriter
-import java.io.IOException
-
 import static extension fr.inria.diverse.k3.sle.jvmmodel.K3SLEJvmModelInferrerHelper.*
 
 import com.google.inject.Inject
@@ -49,8 +44,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 	@Inject extension IQualifiedNameProvider
 
 	MegamodelRoot mgmRoot
-	static final val DEBUG_FILE = "/tmp/k3sle.debug"
-	static final val MODEL_FILE = "platform:/resource/Output/model/output.xmi"
+	//static final val MODEL_FILE = "platform:/resource/Output/model/output.xmi"
 
 	def dispatch void infer(MegamodelRoot root, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		mgmRoot = root
@@ -588,15 +582,5 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 
 	def interfaceNameFor(ModelType mt, String cls) {
 		mt.fullyQualifiedName.append(cls).normalize.toString
-	}
-
-	def log(String s) {
-		try {
-			val debug = new PrintWriter(new BufferedWriter(new FileWriter(DEBUG_FILE, true)))
-			debug.write("[" + new java.util.Date() + "] " + s + "\n")
-			debug.close
-		} catch (IOException e) {
-			e.printStackTrace
-		}
 	}
 }
