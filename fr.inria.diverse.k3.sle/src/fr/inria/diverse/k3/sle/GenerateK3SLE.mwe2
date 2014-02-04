@@ -4,7 +4,7 @@ import org.eclipse.emf.mwe.utils.*
 import org.eclipse.xtext.generator.*
 import org.eclipse.xtext.ui.generator.*
 
-var grammarURI = "classpath:/fr/inria/diverse/k3/sle/K3SLE.xtext"
+var grammarURI = "platform:/resource/fr.inria.diverse.k3.sle/src/fr/inria/diverse/k3/sle/K3SLE.xtext"
 var fileExtensions = "k3sle"
 var projectName = "fr.inria.diverse.k3.sle"
 var runtimeProject = "../${projectName}"
