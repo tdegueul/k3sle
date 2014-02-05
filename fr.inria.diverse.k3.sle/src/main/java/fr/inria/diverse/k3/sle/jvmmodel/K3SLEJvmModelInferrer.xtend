@@ -494,7 +494,7 @@ class K3SLEJvmModelInferrer extends AbstractModelInferrer
 				transfo.parameters.forEach[p |
 					parameters += transfo.toParameter(p.name, p.parameterType)
 				]
-				body = transfo.body as XExpression
+				body = transfo.body
 				static = true
 			]
 

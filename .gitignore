@@ -6,4 +6,5 @@ eclimd.log
 src-gen/
 xtend-gen/
 bin/
+target/
 
